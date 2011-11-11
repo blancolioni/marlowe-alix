@@ -1,0 +1,13 @@
+#!/bin/sh
+unset ADA_OBJECTS_PATH
+unset ADA_INCLUDE_PATH
+LARGS=
+#LARGS=-largs -lgmem
+PROFILE=
+#PROFILE=-pg
+#OPT=
+OPT='-O4 -gnatn -gnatN'
+for i in test_header_overflow test_btrees test_large_btrees; do
+    gnatmake -g -s $PROFILE $OPT $* -gnata -k -I../src -I../src/wlib $i $GMEM
+done
+#gnatmake -g $* -k test_btree
