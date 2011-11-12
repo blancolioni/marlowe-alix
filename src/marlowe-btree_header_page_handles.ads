@@ -1,4 +1,5 @@
-with Marlowe.Btree_Keys;
+with System.Storage_Elements;
+
 with Marlowe.Pages.Btree_Header;
 
 with Marlowe.Page_Handles;
@@ -20,10 +21,10 @@ package Marlowe.Btree_Header_Page_Handles is
      return Marlowe.Pages.Btree_Header.Btree_Header_Page;
 
    function Add_Btree_Description
-     (To_Page  : Btree_Header_Page_Handle;
-      Name     : String;
-      Key      : Marlowe.Btree_Keys.Component_Array)
-     return Positive;
+     (To_Page    : Btree_Header_Page_Handle;
+      Name       : String;
+      Key_Length : System.Storage_Elements.Storage_Count)
+      return Positive;
 
    function Maximum_Btree_Count return Natural;
 
@@ -56,10 +57,6 @@ package Marlowe.Btree_Header_Page_Handles is
    procedure Set_Btree_Root (Item     : in Btree_Header_Page_Handle;
                              Index    : in Positive;
                              New_Root : in File_And_Page);
-
-   function Get_Btree_Key (Item     : in Btree_Header_Page_Handle;
-                           Index    : in Positive)
-                          return Marlowe.Btree_Keys.Component_Array;
 
    function Get_Btree_Key_Length (Item  : in Btree_Header_Page_Handle;
                                   Index : in Positive)

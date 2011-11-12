@@ -1,7 +1,5 @@
 with System.Storage_Elements;
 
-with Marlowe.Btree_Keys;
-
 package Marlowe.Pages.Btree_Header is
 
    type Btree_Header_Page_Record is private;
@@ -31,10 +29,6 @@ package Marlowe.Pages.Btree_Header is
                              Index    : in Positive;
                              New_Root : in File_And_Page);
 
-   function Get_Btree_Key (Item     : in Btree_Header_Page;
-                           Index    : in Positive)
-                          return Marlowe.Btree_Keys.Component_Array;
-
    function Get_Btree_Key_Length (Item     : in Btree_Header_Page;
                                   Index    : in Positive)
                                  return Positive;
@@ -60,9 +54,9 @@ package Marlowe.Pages.Btree_Header is
                              Loc  : in File_And_Page);
 
    function Add_Btree_Description
-     (To_Page  : Btree_Header_Page;
-      Name     : String;
-      Key      : Marlowe.Btree_Keys.Component_Array)
+     (To_Page    : Btree_Header_Page;
+      Name       : String;
+      Key_Length : System.Storage_Elements.Storage_Count)
      return Positive;
 
    function Get_Total_Btrees (For_Page : Btree_Header_Page) return Natural;
@@ -81,26 +75,20 @@ package Marlowe.Pages.Btree_Header is
 
 private
 
-   Max_Name_Length : constant := 79;
+   Max_Name_Length : constant := 47;
    --  We will be able to support longer names, but the name will
    --  be somehow compressed
 
-   type Key_Length is range 0 .. 4095;
-   for Key_Length'Size use 12;
+   type Key_Length is range 0 .. 65535;
+   for Key_Length'Size use 16;
 
    type Key_Component_Count is range 0 .. 15;
    for Key_Component_Count'Size use 4;
-
-   type Array_Of_Components is
-     array (Key_Component_Count) of Marlowe.Btree_Keys.Key_Component;
-   pragma Pack (Array_Of_Components);
 
    type Btree_Info_Record is
       record
          Root           : File_And_Page;
          Length         : Key_Length;
-         Num_Components : Key_Component_Count;
-         Component      : Array_Of_Components;
          Node_Degree    : Word_2;
          Leaf_Degree    : Word_2;
          Record_Index   : Table_Index;
@@ -111,17 +99,15 @@ private
    for Btree_Info_Record use
       record
          Root           at  0 range  0 ..  63;
-         Length         at  8 range  0 ..  11;
-         Num_Components at  8 range 12 ..  15;
-         Component      at 10 range  0 .. 255;
-         Node_Degree    at 42 range  0 ..  15;
-         Leaf_Degree    at 44 range  0 ..  15;
-         Record_Index   at 46 range  0 ..  15;
-         Name_Length    at 48 range  0 ..   7;
-         Name           at 49 range  0 ..  Max_Name_Length * 8 - 1;
+         Length         at  8 range  0 ..  15;
+         Node_Degree    at 10 range  0 ..  15;
+         Leaf_Degree    at 12 range  0 ..  15;
+         Record_Index   at 14 range  0 ..  15;
+         Name_Length    at 16 range  0 ..   7;
+         Name           at 17 range  0 ..  Max_Name_Length * 8 - 1;
       end record;
 
-   for Btree_Info_Record'Size use 128 * System.Storage_Unit;
+   for Btree_Info_Record'Size use 64 * System.Storage_Unit;
 
    type Btree_Info_Array is
      array (1 .. (Page_Contents_Bits - 128) / 128 / System.Storage_Unit) of

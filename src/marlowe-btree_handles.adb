@@ -17,6 +17,7 @@ with Marlowe.Handles.Storage_Element_Page_Handle;
 
 with Marlowe.Btree_Header_Page_Handles;
 with Marlowe.Btree.Data_Definition_Handles;
+with Marlowe.Key_Storage;
 
 with Marlowe.File_Handles;
 
@@ -27,11 +28,6 @@ with Marlowe.Trace;
 
 package body Marlowe.Btree_Handles is
 
-   Max_Components : constant := 15;
-   --  Max_Components should match the upper bound of
-   --  Marlowe.Pages.Btree_Header.Key_Component_Count
-   --  (sorry!)
-
    Max_Root_Pages : constant := 6;
 
    type Btree_Reference_Record is
@@ -40,9 +36,6 @@ package body Marlowe.Btree_Handles is
          Index          : Positive;
          Record_No      : Table_Index;
          Key_Length     : Storage_Count;
-         Num_Components : Natural;
-         Key            : Marlowe.Btree_Keys.Component_Array
-           (1 .. Max_Components);
       end record;
 
    package List_Of_References is
@@ -104,16 +97,16 @@ package body Marlowe.Btree_Handles is
    -- Add_Key --
    -------------
 
-   function Add_Key (Handle     : in    Btree_Handle;
-                     Name       : in    String;
-                     Record_No  : in    Table_Index;
-                     Components : in    Marlowe.Btree_Keys.Component_Array)
-                    return Btree_Reference
+   function Add_Key
+     (Handle       : in    Btree_Handle;
+      Name         : in    String;
+      Record_No    : in    Table_Index;
+      Length       : in    System.Storage_Elements.Storage_Offset)
+      return Btree_Reference
    is
       New_Ref     : constant Btree_Reference := new Btree_Reference_Record;
       Index       : Natural := 0;
       Local_Index : Positive;
-      Length      : System.Storage_Elements.Storage_Count;
       Header      : Btree_Header_Page_Handles.Btree_Header_Page_Handle :=
         Handle.Header;
    begin
@@ -139,12 +132,9 @@ package body Marlowe.Btree_Handles is
             end;
          end if;
 
-         Local_Index := Add_Btree_Description (Header, Name, Components);
+         Local_Index := Add_Btree_Description (Header, Name, Length);
 
          Index := Index + Local_Index;
-
-         Length := System.Storage_Elements.Storage_Count
-           (Get_Btree_Key_Length (Header, Local_Index));
 
          Increment_Total_Btrees (Handle.Header);
 
@@ -174,8 +164,6 @@ package body Marlowe.Btree_Handles is
       New_Ref.Index      := Index;
       New_Ref.Record_No  := Record_No;
       New_Ref.Key_Length := Length;
-      New_Ref.Num_Components := Components'Length;
-      New_Ref.Key (1 .. Components'Length) := Components;
       List_Of_References.Append (Handle.Refs, New_Ref);
 
       return New_Ref;
@@ -254,12 +242,8 @@ package body Marlowe.Btree_Handles is
    is
 
       use Marlowe.Btree_Page_Handles;
-      use Marlowe.Btree_Keys;
 
       OK : Boolean := True;
-
-      Defn : constant Component_Array :=
-        Get_Key_Definition (Reference);
 
       procedure Check_Page (P : Btree_Page_Handle);
       --  Checks an individual page, and calls itself recursively
@@ -270,6 +254,7 @@ package body Marlowe.Btree_Handles is
       ----------------
 
       procedure Check_Page (P : Btree_Page_Handle) is
+         use Marlowe.Key_Storage;
          K1, K2 : System.Storage_Elements.Storage_Array
            (1 .. System.Storage_Elements.Storage_Offset (Get_Key_Length (P)));
       begin
@@ -309,7 +294,7 @@ package body Marlowe.Btree_Handles is
                         Get_Key (P, I, K1);
                         Get_Key (Child, J, K2);
 
-                        case Compare (Defn, K1, K2) is
+                        case Compare (K1, K2) is
                            when Less =>
                               Ada.Text_IO.Put_Line
                                 ("Child " &
@@ -371,7 +356,6 @@ package body Marlowe.Btree_Handles is
       elsif Current.Key_Length > 0 then
          declare
             use Marlowe.Btree_Page_Handles;
-            use Marlowe.Btree_Keys;
             Page : Btree_Page_Handle renames Current.Page;
             Key  : System.Storage_Elements.Storage_Array
               (1 .. Current.Key_Length);
@@ -473,14 +457,10 @@ package body Marlowe.Btree_Handles is
                      Reference  : in Btree_Reference;
                      Key        : in System.Storage_Elements.Storage_Array)
    is
-      use Marlowe.Btree_Keys;
       use Marlowe.Btree_Page_Handles;
 
       subtype Key_Type is
         System.Storage_Elements.Storage_Array (1 .. Reference.Key_Length);
-
-      Defn : constant Component_Array :=
-        Get_Key_Definition (Reference);
 
       procedure Do_Delete (Page : in Btree_Page_Handle;
                            K    : in System.Storage_Elements.Storage_Array);
@@ -510,10 +490,14 @@ package body Marlowe.Btree_Handles is
       is
          Child : Btree_Page_Handle := Get_Child (Page, Index);
       begin
-         Trace ("Delete_From_Subtree: page" &
-                  Image (Get_Location (Page)) &
-                  "; index" & Index'Img &
-                  "; key " & Image (K));
+
+         if Marlowe.Trace.Tracing then
+            Trace ("Delete_From_Subtree: page"
+                   & Image (Get_Location (Page))
+                   & "; index" & Index'Img
+                   & "; key "
+                   & Marlowe.Key_Storage.Image (K));
+         end if;
 
          if Number_Of_Keys (Child) > Minimum_Keys (Child) then
             Trace ("Case 3");
@@ -783,7 +767,7 @@ package body Marlowe.Btree_Handles is
                end if;
 
                if Index_Less_Than_Key_Count and then
-                 Equal (Defn, Temp_Key, K)
+                 Marlowe.Key_Storage.Equal (Temp_Key, K)
                then
                   Trace ("deleting internally");
                   Delete_Internal (Page, Index, K);
@@ -909,7 +893,6 @@ package body Marlowe.Btree_Handles is
    is
 
       use Btree_Page_Handles;
-      use Btree_Keys;
 
       procedure Dump_Tree (Top : Btree_Page_Handle);
       --  Dump the tree, starting from the given page
@@ -1019,17 +1002,6 @@ package body Marlowe.Btree_Handles is
       pragma Assert (Valid (From));
       Marlowe.Btree_Page_Handles.Get_Key (From.Page, From.Slot, Key);
    end Get_Key;
-
-   ------------------------
-   -- Get_Key_Definition --
-   ------------------------
-
-   function Get_Key_Definition (Reference : Btree_Reference)
-                               return Marlowe.Btree_Keys.Component_Array
-   is
-   begin
-      return Reference.Key (1 .. Reference.Num_Components);
-   end Get_Key_Definition;
 
    --------------------
    -- Get_Key_Length --
@@ -1331,13 +1303,12 @@ package body Marlowe.Btree_Handles is
          Split (Child, New_Child, Index, Parent);
 
          declare
-            use Marlowe.Btree_Keys;
+            use Marlowe.Key_Storage;
             Page_Key : System.Storage_Elements.Storage_Array (Key'Range);
          begin
             Get_Key (Parent, Index, Page_Key);
-            if Index <= Number_Of_Keys (Parent) and then
-              Compare (Get_Key_Definition (Reference),
-                       Page_Key, Key) = Less
+            if Index <= Number_Of_Keys (Parent)
+              and then Key_Storage.Compare (Page_Key, Key) = Less
             then
                Unlock (Child);
                Child := New_Child;
@@ -1803,13 +1774,6 @@ package body Marlowe.Btree_Handles is
               System.Storage_Elements.Storage_Offset
               (Btree_Header_Page_Handles.Get_Btree_Key_Length (Header,
                                                                Index));
-            declare
-               Key : constant Marlowe.Btree_Keys.Component_Array :=
-                 Get_Btree_Key (Header, Index);
-            begin
-               Ref.Num_Components := Key'Length;
-               Ref.Key (1 .. Ref.Num_Components) := Key;
-            end;
             List_Of_References.Append (Handle.Refs, Ref);
          end loop;
       end;
@@ -1913,7 +1877,7 @@ package body Marlowe.Btree_Handles is
       function Perform_Search (Page : in Btree_Page_Handle)
                          return Btree_Mark
       is
-         use Marlowe.Btree_Keys;
+         use Marlowe.Key_Storage;
          Index  : constant Slot_Index :=
            Find_Key (Page, Key, Scan = Forward);
          Page_Key : System.Storage_Elements.Storage_Array (Start'Range);
@@ -1928,7 +1892,7 @@ package body Marlowe.Btree_Handles is
 
             Get_Key (Page, Index, Page_Key);
 
-            if Equal (Get_Key_Definition (Reference), Page_Key, Key) then
+            if Equal (Page_Key, Key) then
                --  Exact match
                Result :=
                  (Ada.Finalization.Controlled with

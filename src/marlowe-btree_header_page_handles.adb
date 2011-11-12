@@ -9,15 +9,15 @@ package body Marlowe.Btree_Header_Page_Handles is
    ---------------------------
 
    function Add_Btree_Description
-     (To_Page  : Btree_Header_Page_Handle;
-      Name     : String;
-      Key      : Marlowe.Btree_Keys.Component_Array)
+     (To_Page    : Btree_Header_Page_Handle;
+      Name       : String;
+      Key_Length : System.Storage_Elements.Storage_Count)
      return Positive
    is
    begin
       Set_Dirty (To_Page);
       return Marlowe.Pages.Btree_Header.Add_Btree_Description
-        (To_Page.The_Btree_Header_Page, Name, Key);
+        (To_Page.The_Btree_Header_Page, Name, Key_Length);
    end Add_Btree_Description;
 
    ---------------------------
@@ -31,22 +31,6 @@ package body Marlowe.Btree_Header_Page_Handles is
    begin
       return Handle.The_Btree_Header_Page;
    end Get_Btree_Header_Page;
-
-   -------------------
-   -- Get_Btree_Key --
-   -------------------
-
-   function Get_Btree_Key (Item  : Btree_Header_Page_Handle;
-                           Index : Positive)
-                          return Marlowe.Btree_Keys.Component_Array
-   is
-      Overflow    : Btree_Header_Page_Handle := Item;
-      Local_Index : Positive := Index;
-   begin
-      Get_Overflow_Page (Overflow, Local_Index);
-      return Pages.Btree_Header.Get_Btree_Key
-        (Overflow.The_Btree_Header_Page, Local_Index);
-   end Get_Btree_Key;
 
    --------------------------
    -- Get_Btree_Key_Length --

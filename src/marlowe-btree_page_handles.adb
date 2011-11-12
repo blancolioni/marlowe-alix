@@ -1,4 +1,4 @@
-with Marlowe.Btree_Keys;
+with Marlowe.Key_Storage;
 
 package body Marlowe.Btree_Page_Handles is
 
@@ -44,7 +44,6 @@ package body Marlowe.Btree_Page_Handles is
    is
       pragma Unreferenced (To_Output);
       use Btree_Page_Handles;
-      use Btree_Keys;
 
       procedure Trace (Text : String);
 
@@ -64,6 +63,7 @@ package body Marlowe.Btree_Page_Handles is
 --           end if;
       end Trace;
 
+      use Marlowe.Key_Storage;
       K : System.Storage_Elements.Storage_Array
         (1 .. System.Storage_Elements.Storage_Count
            (Page.Get_Key_Length));
@@ -107,7 +107,6 @@ package body Marlowe.Btree_Page_Handles is
                       Forward    : Boolean)
                      return Slot_Index
    is
-      use Marlowe.Btree_Keys;
       use type System.Storage_Elements.Storage_Array;
       Current : System.Storage_Elements.Storage_Array
         (1 .. System.Storage_Elements.Storage_Offset (Get_Key_Length (Item)));
@@ -263,7 +262,6 @@ package body Marlowe.Btree_Page_Handles is
 
       for I in reverse Slot_Index range 1 .. Number_Of_Keys (Item) - 1 loop
          declare
-            use Marlowe.Btree_Keys;
             Current : System.Storage_Elements.Storage_Array
               (1 .. System.Storage_Elements.Storage_Offset
                (Get_Key_Length (Item)));

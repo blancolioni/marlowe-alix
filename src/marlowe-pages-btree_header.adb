@@ -10,9 +10,9 @@ package body Marlowe.Pages.Btree_Header is
    ---------------------------
 
    function Add_Btree_Description
-     (To_Page  : Btree_Header_Page;
-      Name     : String;
-      Key      : Marlowe.Btree_Keys.Component_Array)
+     (To_Page    : Btree_Header_Page;
+      Name       : String;
+      Key_Length : System.Storage_Elements.Storage_Count)
      return Positive
    is
    begin
@@ -23,15 +23,7 @@ package body Marlowe.Pages.Btree_Header is
            To_Page.Contents.Info (Positive (To_Page.Contents.Count));
       begin
          Info.Root   := 0;
-         Info.Length := 0;
-         Info.Num_Components := Key_Component_Count (Key'Length);
-         for I in Key'Range loop
-            Info.Component (Key_Component_Count (I - Key'First)) :=
-              Key (I);
-            Info.Length := Info.Length +
-              Key_Length (Btree_Keys.Get_Length (Key (I)));
-         end loop;
-
+         Info.Length := Marlowe.Pages.Btree_Header.Key_Length (Key_Length);
          Info.Node_Degree :=
            Word_2 (Marlowe.Pages.Btree.Node_Minimum_Degree
                    (Slot_Index (Info.Length)));
@@ -45,31 +37,6 @@ package body Marlowe.Pages.Btree_Header is
       end;
       return Positive (To_Page.Contents.Count);
    end Add_Btree_Description;
-
-   -------------------
-   -- Get_Btree_Key --
-   -------------------
-
-   function Get_Btree_Key (Item     : in Btree_Header_Page;
-                           Index    : in Positive)
-                          return Marlowe.Btree_Keys.Component_Array
-   is
-      Info : Btree_Info_Record renames
-        Item.Contents.Info (Index);
-   begin
-      pragma Assert (Index <= Number_Of_Btrees (Item));
-      declare
-         Result : Marlowe.Btree_Keys.Component_Array
-           (1 .. Natural (Info.Num_Components));
-      begin
-         for I in Result'Range loop
-            Result (I) :=
-              Info.Component (Key_Component_Count (I - Result'First) +
-                              Info.Component'First);
-         end loop;
-         return Result;
-      end;
-   end Get_Btree_Key;
 
    --------------------------
    -- Get_Btree_Key_Length --
