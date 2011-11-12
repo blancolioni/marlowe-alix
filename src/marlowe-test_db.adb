@@ -4,7 +4,9 @@ with Ada.Text_IO;
 with System.Storage_Elements;
 
 with Marlowe.Btree_Handles;
-with Marlowe.Btree_Keys;
+with Marlowe.Key_Storage;
+
+--  with Marlowe.Btree_Keys;
 
 package body Marlowe.Test_Db is
 
@@ -62,8 +64,6 @@ package body Marlowe.Test_Db is
          declare
             use type System.Storage_Elements.Storage_Array;
             use Marlowe.Btree_Handles;
-            use Marlowe.Btree_Keys;
-            Key_Def : constant Component_Array := Get_Key_Definition (Ref);
             Index   : Database_Index;
             Item    : Integer := I;
          begin
@@ -71,8 +71,8 @@ package body Marlowe.Test_Db is
             Write_Record (Handle, 1, Index, Item'Address);
 
             Insert (Handle, Ref,
-                    To_Btree_Key (Key_Def (Key_Def'First), I) &
-                    To_Btree_Key (Index));
+                    Marlowe.Key_Storage.To_Storage_Array (I, 4)
+                    & Marlowe.Key_Storage.To_Storage_Array (Index));
          end;
       end loop;
 
@@ -98,15 +98,15 @@ package body Marlowe.Test_Db is
          declare
             use type System.Storage_Elements.Storage_Array;
             use Marlowe.Btree_Handles;
-            use Marlowe.Btree_Keys;
-            Key_Def : constant Component_Array := Get_Key_Definition (Ref);
             Index   : Database_Index;
             Low  : constant System.Storage_Elements.Storage_Array :=
-                     To_Btree_Key (Key_Def (Key_Def'First), I) &
-            To_Btree_Key (Database_Index'First);
+                     Marlowe.Key_Storage.To_Storage_Array (I, 4)
+                     & Marlowe.Key_Storage.To_Storage_Array
+              (Database_Index'First);
             High  : constant System.Storage_Elements.Storage_Array :=
-                      To_Btree_Key (Key_Def (Key_Def'First), I) &
-            To_Btree_Key (Database_Index'Last);
+                     Marlowe.Key_Storage.To_Storage_Array (I, 4)
+                     & Marlowe.Key_Storage.To_Storage_Array
+              (Database_Index'Last);
             Mark  : constant Btree_Mark :=
                       Search (Handle, Ref, Low, High,
                               Open, Open, Forward);
@@ -121,7 +121,7 @@ package body Marlowe.Test_Db is
                   Key : constant Storage_Array := Get_Key (Mark);
                begin
                   Index :=
-                    To_Database_Index
+                    Marlowe.Key_Storage.To_Database_Index
                       (Key (Key'First + 4 .. Key'Last));
                   Get_Record (Handle, 1, Index, Value'Address);
                end;
@@ -165,12 +165,7 @@ package body Marlowe.Test_Db is
 
          Ref :=
            Marlowe.Btree_Handles.Add_Key
-             (Handle, "test", Table,
-              (1 => Marlowe.Btree_Keys.Make_Component
-                 (Marlowe.Btree_Keys.Signed_Integer_Key,
-                  4),
-               2 => Marlowe.Btree_Keys.Make_Component
-                 (Marlowe.Btree_Keys.Unsigned_Integer_Key, 8)));
+             (Handle, "test", Table, 12);
       end;
    end Create;
 

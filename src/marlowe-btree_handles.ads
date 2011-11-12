@@ -2,7 +2,7 @@ with Ada.Finalization;
 
 with System.Storage_Elements;
 
-with Marlowe.Btree_Keys;
+--  with Marlowe.Btree_Keys;
 with Marlowe.Btree_Page_Handles;
 
 package Marlowe.Btree_Handles is
@@ -84,17 +84,15 @@ package Marlowe.Btree_Handles is
    function Get_Key_Table_Index (Reference : Btree_Reference)
                                  return Table_Index;
 
-   function Get_Key_Definition (Reference : Btree_Reference)
-                               return Marlowe.Btree_Keys.Component_Array;
-
    function Get_Key_Length (Reference : Btree_Reference)
                            return System.Storage_Elements.Storage_Offset;
 
-   function Add_Key (Handle       : in    Btree_Handle;
-                     Name         : in    String;
-                     Record_No    : in    Table_Index;
-                     Components   : in    Marlowe.Btree_Keys.Component_Array)
-                    return Btree_Reference;
+   function Add_Key
+     (Handle       : in    Btree_Handle;
+      Name         : in    String;
+      Record_No    : in    Table_Index;
+      Length       : in    System.Storage_Elements.Storage_Offset)
+      return Btree_Reference;
 
    procedure Insert (Handle     : in Btree_Handle;
                      Reference  : in Btree_Reference;
