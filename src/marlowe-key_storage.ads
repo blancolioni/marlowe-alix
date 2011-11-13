@@ -11,6 +11,14 @@ package Marlowe.Key_Storage is
       return System.Storage_Elements.Storage_Array;
 
    function To_Storage_Array
+     (Value : Float)
+      return System.Storage_Elements.Storage_Array;
+
+   function To_Storage_Array
+     (Value : Long_Float)
+      return System.Storage_Elements.Storage_Array;
+
+   function To_Storage_Array
      (Value : String;
       Length : System.Storage_Elements.Storage_Count)
       return System.Storage_Elements.Storage_Array;
