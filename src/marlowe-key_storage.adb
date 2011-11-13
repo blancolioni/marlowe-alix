@@ -1,6 +1,17 @@
+with Ada.Unchecked_Conversion;
+
 package body Marlowe.Key_Storage is
 
    type Unsigned_Integer is mod 2 ** Integer'Size;
+
+   type Float_Integer is mod 2 ** Float'Size;
+   type Long_Float_Integer is mod 2 ** Long_Float'Size;
+
+   function To_Float_Integer is
+     new Ada.Unchecked_Conversion (Float, Float_Integer);
+
+   function To_Long_Float_Integer is
+     new Ada.Unchecked_Conversion (Long_Float, Long_Float_Integer);
 
 
    package body Unsigned_Key_Components is
@@ -15,7 +26,7 @@ package body Marlowe.Key_Storage is
       is
          Result : Component_Type := 0;
       begin
-         for I in reverse Key_Value'Range loop
+         for I in Key_Value'Range loop
             Result := Result * 256 + Component_Type (Key_Value (I));
          end loop;
          return Result;
@@ -45,6 +56,12 @@ package body Marlowe.Key_Storage is
 
    package Unsigned_Integer_Components is
      new Unsigned_Key_Components (Unsigned_Integer);
+
+   package Float_Integer_Components is
+     new Unsigned_Key_Components (Float_Integer);
+
+   package Long_Float_Integer_Components is
+     new Unsigned_Key_Components (Long_Float_Integer);
 
    -------------
    -- Compare --
@@ -123,11 +140,11 @@ package body Marlowe.Key_Storage is
      (Key_Value : System.Storage_Elements.Storage_Array)
       return Database_Index
    is
+      use type System.Storage_Elements.Storage_Offset;
       Result : Database_Index := 0;
    begin
-      for I in Key_Value'Range loop
+      for I in Key_Value'Last - 7 .. Key_Value'Last loop
          Result := Result * 256 + Database_Index (Key_Value (I));
-         --  exit when I = Key_Value'Last - 7;
       end loop;
       return Result;
    end To_Database_Index;
@@ -171,6 +188,34 @@ package body Marlowe.Key_Storage is
       end if;
 
       return Unsigned_Integer_Components.To_Storage_Array (X, Length);
+   end To_Storage_Array;
+
+   ----------------------
+   -- To_Storage_Array --
+   ----------------------
+
+   function To_Storage_Array
+     (Value : Float)
+      return System.Storage_Elements.Storage_Array
+   is
+      use type System.Storage_Elements.Storage_Count;
+   begin
+      return Float_Integer_Components.To_Storage_Array
+        (To_Float_Integer (Value), Float'Size / System.Storage_Unit);
+   end To_Storage_Array;
+
+   ----------------------
+   -- To_Storage_Array --
+   ----------------------
+
+   function To_Storage_Array
+     (Value : Long_Float)
+      return System.Storage_Elements.Storage_Array
+   is
+      use type System.Storage_Elements.Storage_Count;
+   begin
+      return Long_Float_Integer_Components.To_Storage_Array
+        (To_Long_Float_Integer (Value), Long_Float'Size / System.Storage_Unit);
    end To_Storage_Array;
 
    ----------------------

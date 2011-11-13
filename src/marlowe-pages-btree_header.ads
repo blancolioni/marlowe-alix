@@ -110,12 +110,12 @@ private
    for Btree_Info_Record'Size use 64 * System.Storage_Unit;
 
    type Btree_Info_Array is
-     array (1 .. (Page_Contents_Bits - 128) / 128 / System.Storage_Unit) of
+     array (1 .. (Page_Contents_Bits - 128) / 64 / System.Storage_Unit) of
      Btree_Info_Record;
    pragma Pack (Btree_Info_Array);
 
    type Unused_Space is new
-     System.Storage_Elements.Storage_Array (1 .. 72);
+     System.Storage_Elements.Storage_Array (1 .. 8);
 
    type Btree_Header_Page_Contents is
       record
