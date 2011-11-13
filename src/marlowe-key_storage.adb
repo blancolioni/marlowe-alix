@@ -125,8 +125,9 @@ package body Marlowe.Key_Storage is
    is
       Result : Database_Index := 0;
    begin
-      for I in reverse Key_Value'Range loop
+      for I in Key_Value'Range loop
          Result := Result * 256 + Database_Index (Key_Value (I));
+         --  exit when I = Key_Value'Last - 7;
       end loop;
       return Result;
    end To_Database_Index;
