@@ -1,0 +1,5 @@
+project_name = Marlowe
+source_dir = src
+depend = { project = WLib
+           version = any
+         }
