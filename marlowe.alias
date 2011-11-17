@@ -1,5 +1,14 @@
 project_name = Marlowe
 source_dir = src
+# source_dir = src/wlib
+source_dir = src/disk-files
 depend = { project = WLib
            version = any
          }
+builder_option = "-g"
+builder_option = "-k"
+compiler_option = "-g"
+compiler_option = "-gnatwa"
+compiler_option = "-gnatyabcefhiklmnoprst"
+compiler_option = "-gnat05"
+linker_option = "-g"
