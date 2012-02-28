@@ -237,8 +237,13 @@ package body Marlowe.Key_Storage is
       Result (Result'Last) :=
         Storage_Element (Value'Length mod (2**System.Storage_Unit));
       for I in Value'Range loop
-         Result (Storage_Offset (I - Value'First) +  Result'First) :=
-           Character'Pos (Value (I));
+         declare
+            Index : constant Storage_Offset :=
+                      Storage_Offset (I - Value'First) +  Result'First;
+         begin
+            exit when Index not in Result'Range;
+            Result (Index) := Character'Pos (Value (I));
+         end;
       end loop;
       return Result;
    end To_Storage_Array;
