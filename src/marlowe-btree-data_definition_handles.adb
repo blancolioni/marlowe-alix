@@ -25,7 +25,8 @@ package body Marlowe.Btree.Data_Definition_Handles is
    is
    begin
       return Marlowe.Pages.Data_Definition.Allocate_Record
-        (Item.The_Data_Definition_Page, Index);
+        (Item.The_Data_Definition_Page,
+         Item.Local_Index (Index));
    end Allocate_Record;
 
    ------------------------------
@@ -51,7 +52,8 @@ package body Marlowe.Btree.Data_Definition_Handles is
    is
    begin
       return Marlowe.Pages.Data_Definition.Get_Next_Record_Overflow
-        (Item.The_Data_Definition_Page, Index);
+        (Item.The_Data_Definition_Page,
+         Item.Local_Index (Index));
    end Get_Next_Record_Overflow;
 
    -----------------------
@@ -94,7 +96,7 @@ package body Marlowe.Btree.Data_Definition_Handles is
    is
    begin
       return Marlowe.Pages.Data_Definition.Get_Record_Length
-        (Item.The_Data_Definition_Page, Index);
+        (Item.The_Data_Definition_Page, Item.Local_Index (Index));
    end Get_Record_Length;
 
    ---------------------
@@ -108,7 +110,7 @@ package body Marlowe.Btree.Data_Definition_Handles is
    is
    begin
       return Marlowe.Pages.Data_Definition.Get_Record_Name
-        (Item.The_Data_Definition_Page, Index);
+        (Item.The_Data_Definition_Page, Item.Local_Index (Index));
    end Get_Record_Name;
 
    ---------------------
@@ -122,7 +124,7 @@ package body Marlowe.Btree.Data_Definition_Handles is
    is
    begin
       return Marlowe.Pages.Data_Definition.Get_Record_Root
-        (Item.The_Data_Definition_Page, Index);
+        (Item.The_Data_Definition_Page, Item.Local_Index (Index));
    end Get_Record_Root;
 
    -----------------------
@@ -135,8 +137,25 @@ package body Marlowe.Btree.Data_Definition_Handles is
    is
    begin
       return Marlowe.Pages.Data_Definition.Last_Record_Index
-        (Item.The_Data_Definition_Page, Table);
+        (Item.The_Data_Definition_Page,
+         Item.Local_Index (Table));
    end Last_Record_Index;
+
+   -----------------
+   -- Local_Index --
+   -----------------
+
+   function Local_Index
+     (Handle : Data_Definition_Handle;
+      Index  : Table_Index)
+      return Marlowe.Pages.Data_Definition.Local_Record_Index
+   is
+   begin
+      return
+        Marlowe.Pages.Data_Definition.To_Local_Index
+          (Handle.The_Data_Definition_Page,
+           Index);
+   end Local_Index;
 
    -------------------------------
    -- Maximum_Data_Record_Count --
@@ -181,6 +200,19 @@ package body Marlowe.Btree.Data_Definition_Handles is
         (Item.The_Data_Definition_Page);
    end Number_Of_Data_Records;
 
+   ---------------------------
+   -- Set_First_Table_Index --
+   ---------------------------
+
+   procedure Set_First_Table_Index (Item : Data_Definition_Handle;
+                                    Index : Table_Index)
+   is
+   begin
+      Item.Set_Dirty;
+      Marlowe.Pages.Data_Definition.Set_First_Table_Index
+        (Item.The_Data_Definition_Page, Index);
+   end Set_First_Table_Index;
+
    ------------------------------
    -- Set_Next_Record_Overflow --
    ------------------------------
@@ -193,7 +225,7 @@ package body Marlowe.Btree.Data_Definition_Handles is
    begin
       Item.Set_Dirty;
       Marlowe.Pages.Data_Definition.Set_Next_Record_Overflow
-        (Item.The_Data_Definition_Page, Index, Addr);
+        (Item.The_Data_Definition_Page, Item.Local_Index (Index), Addr);
    end Set_Next_Record_Overflow;
 
    -----------------------
@@ -240,7 +272,7 @@ package body Marlowe.Btree.Data_Definition_Handles is
    begin
       Marlowe.Pages.Data_Definition.Set_Record_Root
         (Item.The_Data_Definition_Page,
-         Index,
+         Item.Local_Index (Index),
          New_Root);
    end Set_Record_Root;
 

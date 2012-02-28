@@ -75,6 +75,9 @@ package Marlowe.Btree.Data_Definition_Handles is
    procedure Set_Overflow_Page (Item          : Data_Definition_Handle;
                                 Overflow_Page : File_And_Page);
 
+   procedure Set_First_Table_Index (Item : Data_Definition_Handle;
+                                    Index : Table_Index);
+
 private
 
    type Data_Definition_Handle is
@@ -83,5 +86,10 @@ private
          The_Data_Definition_Page :
              Marlowe.Pages.Data_Definition.Data_Definition_Page;
       end record;
+
+   function Local_Index
+     (Handle : Data_Definition_Handle;
+      Index  : Table_Index)
+      return Marlowe.Pages.Data_Definition.Local_Record_Index;
 
 end Marlowe.Btree.Data_Definition_Handles;
