@@ -14,6 +14,7 @@ with Marlowe.Trace;
 package body Marlowe.Caches is
 
    Show_References : constant Boolean := False;
+   pragma Unreferenced (Show_References);
 
    Cache_Hits, Cache_Misses : Natural := 0;
 
@@ -79,7 +80,10 @@ package body Marlowe.Caches is
 
    procedure Trace (Message : String);
    procedure Enter (Message : String);
+   pragma Unreferenced (Enter);
+
    procedure Leave (Message : String);
+   pragma Unreferenced (Leave);
 
    -----------
    -- Close --
@@ -345,7 +349,8 @@ package body Marlowe.Caches is
          Marlowe.Locks.Shared_Unlock (From_Cache.Cache_Lock.all);
 
          if Marlowe.Trace.Tracing then
-            Ada.Text_IO.Put_Line ("Taking exclusive lock: " & Image (Location));
+            Ada.Text_IO.Put_Line
+              ("Taking exclusive lock: " & Image (Location));
          end if;
 
          Marlowe.Locks.Exclusive_Lock (From_Cache.Cache_Lock.all);
@@ -437,7 +442,8 @@ package body Marlowe.Caches is
 
       if Marlowe.Locks.Exclusive_Locked (From_Cache.Cache_Lock.all) then
          if Marlowe.Trace.Tracing then
-            Ada.Text_IO.Put_Line ("Removing exclusive lock: " & Image (Location));
+            Ada.Text_IO.Put_Line
+              ("Removing exclusive lock: " & Image (Location));
          end if;
 
          Marlowe.Locks.Unlock (From_Cache.Cache_Lock.all);
