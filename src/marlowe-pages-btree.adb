@@ -3,6 +3,8 @@ with Ada.Unchecked_Deallocation;
 
 package body Marlowe.Pages.Btree is
 
+   pragma Style_Checks (Off);
+
    type File_And_Page_Storage is
      new System.Storage_Elements.Storage_Array (1 .. 8);
 
@@ -84,21 +86,21 @@ package body Marlowe.Pages.Btree is
    -- Get_Key --
    -------------
 
-   function Get_Key (Item  : in Btree_Page;
-                     Index : in Slot_Index)
-                    return System.Storage_Elements.Storage_Array
-   is
-      use System.Storage_Elements;
-      pragma Assert (Index >= 1);
-      pragma Assert (Index <= Number_Of_Keys (Item));
-      Start_Offset : constant Slot_Index :=
-        (Index - 1) * Item.Contents.Key_Length + 1;
-      End_Offset   : constant Slot_Index :=
-        Start_Offset + Item.Contents.Key_Length - 1;
-   begin
-      return Item.Contents.Contents (Storage_Count (Start_Offset) ..
-                                     Storage_Count (End_Offset));
-   end Get_Key;
+--     function Get_Key (Item  : in Btree_Page;
+--                       Index : in Slot_Index)
+--                      return System.Storage_Elements.Storage_Array
+--     is
+--        use System.Storage_Elements;
+--        pragma Assert (Index >= 1);
+--        pragma Assert (Index <= Number_Of_Keys (Item));
+--        Start_Offset : constant Slot_Index :=
+--          (Index - 1) * Item.Contents.Key_Length + 1;
+--        End_Offset   : constant Slot_Index :=
+--          Start_Offset + Item.Contents.Key_Length - 1;
+--     begin
+--        return Item.Contents.Contents (Storage_Count (Start_Offset) ..
+--                                       Storage_Count (End_Offset));
+--     end Get_Key;
 
    ---------------
    -- Get_Child --

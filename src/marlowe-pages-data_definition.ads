@@ -24,25 +24,32 @@ package Marlowe.Pages.Data_Definition is
      (Item : Data_Definition_Page)
       return Natural;
 
+   type Local_Record_Index is private;
+
+   function To_Local_Index
+     (Page   : Data_Definition_Page;
+      Index  : Table_Index)
+      return Local_Record_Index;
+
    function Get_Record_Name (Item  : Data_Definition_Page;
-                            Index : Real_Table_Index)
+                             Index : Local_Record_Index)
                            return String;
    function Get_Record_Root (Item  : Data_Definition_Page;
-                             Index : Real_Table_Index)
+                             Index : Local_Record_Index)
                              return File_And_Page;
 
    procedure Set_Record_Root (Item     : in Data_Definition_Page;
-                              Index    : in Real_Table_Index;
+                              Index    : Local_Record_Index;
                               New_Root : in File_And_Page);
 
    function Get_Record_Length
      (Item     : in Data_Definition_Page;
-      Index    : in Real_Table_Index)
+      Index    : Local_Record_Index)
       return System.Storage_Elements.Storage_Count;
 
    function Get_Next_Record_Overflow
      (Item  : in Data_Definition_Page;
-      Index : in Real_Table_Index)
+      Index : Local_Record_Index)
       return File_Page_And_Slot;
    --  Next available location for record data which does
    --  not fit into the 56 bytes available in the main
@@ -50,14 +57,14 @@ package Marlowe.Pages.Data_Definition is
 
    procedure Set_Next_Record_Overflow
      (Item  : in Data_Definition_Page;
-      Index : in Real_Table_Index;
+      Index : Local_Record_Index;
       Addr  : in File_Page_And_Slot);
 
    function Add_Record_Definition
      (To_Page  : Data_Definition_Page;
       Name     : String;
       Length   : System.Storage_Elements.Storage_Count)
-     return Real_Table_Index;
+      return Real_Table_Index;
 
    function Get_Overflow_Page (From : Data_Definition_Page)
                               return File_And_Page;
@@ -65,12 +72,20 @@ package Marlowe.Pages.Data_Definition is
    procedure Set_Overflow_Page (From          : Data_Definition_Page;
                                 Overflow_Page : File_And_Page);
 
+   function First_Table_Index
+     (From : Data_Definition_Page)
+      return Table_Index;
+
+   procedure Set_First_Table_Index
+     (Page : Data_Definition_Page;
+      Value : Table_Index);
+
    function Allocate_Record (Item    : Data_Definition_Page;
-                             Index   : Table_Index)
+                             Index : Local_Record_Index)
                              return Database_Index;
 
    function Last_Record_Index (Item  : Data_Definition_Page;
-                               Table : Table_Index)
+                               Table : Local_Record_Index)
                               return Database_Index;
 
 private
@@ -108,18 +123,20 @@ private
 
    Record_Info_Bits : constant := Page_Contents_Bits - 128;
    Record_Info_Count : constant :=
-               Record_Info_Bits / Record_Info_Size;
+                         Record_Info_Bits / Record_Info_Size;
+   type Local_Record_Index is range 1 .. Record_Info_Count;
    type Record_Info_Array is
-     array (Real_Table_Index range 1 .. Record_Info_Count) of Record_Info;
+     array (Local_Record_Index) of Record_Info;
    pragma Pack (Record_Info_Array);
 
-   subtype Unused_Array is System.Storage_Elements.Storage_Array (1 .. 24);
+   subtype Unused_Array is System.Storage_Elements.Storage_Array (1 .. 22);
 
    type Data_Definition_Page_Contents is
       record
          Overflow     : File_And_Page;
          Count        : Word_4;
          Info         : Record_Info_Array;
+         First        : Table_Index;
          Unused       : Unused_Array;
       end record;
 

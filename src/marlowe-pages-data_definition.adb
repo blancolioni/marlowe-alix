@@ -13,18 +13,21 @@ package body Marlowe.Pages.Data_Definition is
       Length   : System.Storage_Elements.Storage_Count)
       return Real_Table_Index
    is
+      Local_Index : constant Local_Record_Index :=
+                      Local_Record_Index (To_Page.Contents.Count + 1);
       Result : constant Real_Table_Index :=
-                 Real_Table_Index (To_Page.Contents.Count + 1);
+                      To_Page.Contents.First
+                        + Real_Table_Index (Local_Index);
    begin
-      To_Page.Contents.Count := Word_4 (Result);
-      To_Page.Contents.Info (Result) :=
+      To_Page.Contents.Count := Word_4 (Local_Index);
+      To_Page.Contents.Info (Local_Index) :=
         (Root        => 0,
          Overflow    => 0,
          Count       => 0,
          Length      => Record_Length (Length),
          Name_Length => System.Storage_Elements.Storage_Element (Name'Length),
          Name        => (others => ' '));
-      To_Page.Contents.Info (Result).Name (1 .. Name'Length) := Name;
+      To_Page.Contents.Info (Local_Index).Name (1 .. Name'Length) := Name;
       return Result;
    end Add_Record_Definition;
 
@@ -32,8 +35,8 @@ package body Marlowe.Pages.Data_Definition is
    -- Allocate_Record --
    ---------------------
 
-   function Allocate_Record (Item    : Data_Definition_Page;
-                             Index   : Table_Index)
+   function Allocate_Record (Item  : Data_Definition_Page;
+                             Index : Local_Record_Index)
                              return Database_Index
    is
       Count : Database_Index renames
@@ -43,13 +46,25 @@ package body Marlowe.Pages.Data_Definition is
       return Count;
    end Allocate_Record;
 
+   -----------------------
+   -- First_Table_Index --
+   -----------------------
+
+   function First_Table_Index
+     (From : Data_Definition_Page)
+      return Table_Index
+   is
+   begin
+      return From.Contents.First;
+   end First_Table_Index;
+
    ------------------------------
    -- Get_Next_Record_Overflow --
    ------------------------------
 
    function Get_Next_Record_Overflow
      (Item  : Data_Definition_Page;
-      Index : Real_Table_Index)
+      Index : Local_Record_Index)
       return File_Page_And_Slot
    is
    begin
@@ -74,7 +89,7 @@ package body Marlowe.Pages.Data_Definition is
 
    function Get_Record_Length
      (Item     : in Data_Definition_Page;
-      Index    : in Real_Table_Index)
+      Index : Local_Record_Index)
       return System.Storage_Elements.Storage_Count
    is
       Rec : Record_Info renames Item.Contents.Info (Index);
@@ -88,7 +103,7 @@ package body Marlowe.Pages.Data_Definition is
 
    function Get_Record_Name
      (Item  : Data_Definition_Page;
-      Index : Real_Table_Index)
+      Index : Local_Record_Index)
       return String
    is
       Rec : Record_Info renames Item.Contents.Info (Index);
@@ -102,7 +117,7 @@ package body Marlowe.Pages.Data_Definition is
 
    function Get_Record_Root
      (Item  : Data_Definition_Page;
-      Index : Real_Table_Index)
+      Index : Local_Record_Index)
       return File_And_Page
    is
       Rec : Record_Info renames Item.Contents.Info (Index);
@@ -129,9 +144,10 @@ package body Marlowe.Pages.Data_Definition is
    -- Last_Record_Index --
    -----------------------
 
-   function Last_Record_Index (Item  : Data_Definition_Page;
-                               Table : Table_Index)
-                              return Database_Index
+   function Last_Record_Index
+     (Item  : Data_Definition_Page;
+      Table : Local_Record_Index)
+      return Database_Index
    is
    begin
       return Item.Contents.Info (Table).Count;
@@ -170,13 +186,25 @@ package body Marlowe.Pages.Data_Definition is
       Free (Item);
    end Release;
 
+   ---------------------------
+   -- Set_First_Table_Index --
+   ---------------------------
+
+   procedure Set_First_Table_Index
+     (Page  : Data_Definition_Page;
+      Value : Table_Index)
+   is
+   begin
+      Page.Contents.First := Value;
+   end Set_First_Table_Index;
+
    ------------------------------
    -- Set_Next_Record_Overflow --
    ------------------------------
 
    procedure Set_Next_Record_Overflow
      (Item  : Data_Definition_Page;
-      Index : Real_Table_Index;
+      Index : Local_Record_Index;
       Addr  : File_Page_And_Slot)
    is
    begin
@@ -201,7 +229,7 @@ package body Marlowe.Pages.Data_Definition is
 
    procedure Set_Record_Root
      (Item     : in Data_Definition_Page;
-      Index    : in Real_Table_Index;
+      Index : Local_Record_Index;
       New_Root : in File_And_Page)
    is
       Rec : Record_Info renames Item.Contents.Info (Index);
@@ -225,6 +253,19 @@ package body Marlowe.Pages.Data_Definition is
                      Get_Page_Type (Item) = No_Page_Type);
       return TFHP (Item);
    end To_Data_Definition_Page;
+
+   --------------------
+   -- To_Local_Index --
+   --------------------
+
+   function To_Local_Index
+     (Page   : Data_Definition_Page;
+      Index  : Table_Index)
+      return Local_Record_Index
+   is
+   begin
+      return Local_Record_Index (Index - Page.Contents.First);
+   end To_Local_Index;
 
    -------------
    -- To_Page --

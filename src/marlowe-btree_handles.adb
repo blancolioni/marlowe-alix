@@ -21,6 +21,8 @@ with Marlowe.Key_Storage;
 
 with Marlowe.File_Handles;
 
+with Marlowe.Pages.Btree_Header;
+
 with Marlowe.Debug_Classes;
 with Marlowe.Debug;
 
@@ -54,11 +56,9 @@ package body Marlowe.Btree_Handles is
 
    type Btree_Handle_Record is
       record
-         File       : Marlowe.File_Handles.File_Handle;
-         Header     :
-           Marlowe.Btree_Header_Page_Handles.Btree_Header_Page_Handle;
-         Tables     :
-           Marlowe.Btree.Data_Definition_Handles.Data_Definition_Handle;
+         File       : File_Handles.File_Handle;
+         Header     : Btree_Header_Page_Handles.Btree_Header_Page_Handle;
+         Table_Root : Btree.Data_Definition_Handles.Data_Definition_Handle;
          Refs       : List_Of_References.List;
          Table_Refs : Table_Reference_Vectors.Vector;
       end record;
@@ -90,6 +90,11 @@ package body Marlowe.Btree_Handles is
                            Db_Records_Per_Page    : Database_Index;
                            Db_Index               : Database_Index)
                            return Array_Of_Slots;
+
+   function Get_Data_Definition
+     (Handle : Btree_Handle;
+      Index  : Table_Index)
+      return Marlowe.Btree.Data_Definition_Handles.Data_Definition_Handle;
 
    procedure Trace (Message : String);
 
@@ -180,28 +185,64 @@ package body Marlowe.Btree_Handles is
                       return Table_Index
    is
       use Marlowe.Btree.Data_Definition_Handles;
-      Index  : Table_Index;
+      Index  : Natural := 0;
       Root   : Marlowe.Handles.Page_Pointer_Page_Handle.Table_Page_Handle;
       Direct : Marlowe.Handles.Data_Page_Handle.Table_Page_Handle;
+      Max    : constant Natural := Maximum_Data_Record_Count;
+      Table  : Data_Definition_Handle := Handle.Table_Root;
    begin
-      Handle.Tables.Exclusive_Lock;
-      Index := Handle.Tables.Add_Record_Definition (Name, Length);
-      Marlowe.File_Handles.Allocate (Handle.File, Root);
-      Marlowe.File_Handles.Allocate (Handle.File, Direct);
+      Table.Exclusive_Lock;
+      while Table.Number_Of_Data_Records = Max
+        and then Table.Get_Overflow_Page /= 0
+      loop
+         declare
+            Overflow : constant Data_Definition_Handle :=
+                         Table.Get_Overflow_Page;
+         begin
+            Overflow.Exclusive_Lock;
+            Table.Unlock;
+            Table := Overflow;
+            Index := Index + Max;
+         end;
+      end loop;
 
-      Root.Set_Table_Value (1, Direct.Get_Location);
-      Handle.Tables.Set_Record_Root (Index, Root.Get_Location);
+      if Table.Number_Of_Data_Records = Max then
+         declare
+            Overflow : Data_Definition_Handle;
+         begin
+            Marlowe.File_Handles.Allocate (Handle.File, Overflow);
+            Set_Overflow_Page (Table, Overflow.Get_Location);
+            Index := Index + Max;
+            Overflow.Set_First_Table_Index (Table_Index (Index));
+            Table.Unlock;
+            Table := Overflow;
+         end;
+      end if;
 
-      Handle.Table_Refs.Append
-        (Create_Table_Reference (Index     => Index,
-                                 Length    => Length,
-                                 Root_Page => Root.Get_Location));
+      declare
+         Local_Index : constant Table_Index :=
+                         Table.Add_Record_Definition (Name, Length);
+         Result_Index : constant Table_Index :=
+                          Table_Index (Index) + Local_Index;
+      begin
+         Marlowe.File_Handles.Allocate (Handle.File, Root);
+         Marlowe.File_Handles.Allocate (Handle.File, Direct);
 
-      Root.Unlock;
-      Direct.Unlock;
+         Root.Set_Table_Value (1, Direct.Get_Location);
+         Table.Set_Record_Root (Local_Index, Root.Get_Location);
 
-      Handle.Tables.Unlock;
-      return Index;
+         Handle.Table_Refs.Append
+           (Create_Table_Reference (Index     => Result_Index,
+                                    Length    => Length,
+                                    Root_Page => Root.Get_Location));
+
+         Root.Unlock;
+         Direct.Unlock;
+         Table.Unlock;
+
+         return Result_Index;
+      end;
+
    end Add_Table;
 
    ---------------
@@ -386,6 +427,12 @@ package body Marlowe.Btree_Handles is
       use Marlowe.Btree_Header_Page_Handles;
       use Marlowe.Btree.Data_Definition_Handles;
    begin
+
+      Ada.Text_IO.Put_Line ("Create btree handle: " & Name);
+      Ada.Text_IO.Put_Line ("  max btrees in header:"
+                              & Natural'Image
+                              (Pages.Btree_Header.Maximum_Btree_Count));
+
       Handle := new Btree_Handle_Record;
 
       if Marlowe.Allocation.Debug_Allocation then
@@ -402,13 +449,13 @@ package body Marlowe.Btree_Handles is
                        File_Handles.First_User_Page (Handle.File));
       Marlowe.File_Handles.Allocate
         (Handle.File,
-         Page_Handles.Page_Handle'Class (Handle.Tables));
-      Handle.Header.Set_Table_Page (Handle.Tables.Get_Location);
+         Page_Handles.Page_Handle'Class (Handle.Table_Root));
+      Handle.Header.Set_Table_Page (Handle.Table_Root.Get_Location);
       Marlowe.Btree_Header_Page_Handles.Set_Magic
         (Handle.Header,
          Magic);
       Btree_Header_Page_Handles.Unlock (Handle.Header);
-      Marlowe.Btree.Data_Definition_Handles.Unlock (Handle.Tables);
+      Marlowe.Btree.Data_Definition_Handles.Unlock (Handle.Table_Root);
    end Create;
 
    ----------------------------
@@ -824,8 +871,10 @@ package body Marlowe.Btree_Handles is
                             Table    : in Table_Index;
                             Db_Index : in Database_Index)
    is
+      use Marlowe.Btree.Data_Definition_Handles;
+      Data : constant Data_Definition_Handle :=
+               Get_Data_Definition (Handle, Table);
    begin
-      Handle.Tables.Shared_Lock;
 
       declare
          use Marlowe.Tables;
@@ -834,7 +883,7 @@ package body Marlowe.Btree_Handles is
          Header : Marlowe.Tables.Record_Header;
          Data_Handle      : Marlowe.Handles.Data_Page_Handle.Table_Page_Handle;
       begin
-         Handle.Tables.Derive (Data_Handle);
+         Data.Derive (Data_Handle);
 
          Data_Handle.Set_Page (Get_File_And_Page (Addr));
          Data_Handle.Exclusive_Lock;
@@ -844,7 +893,7 @@ package body Marlowe.Btree_Handles is
          Data_Handle.Unlock;
       end;
 
-      Handle.Tables.Shared_Unlock;
+      Data.Shared_Unlock;
 
    end Delete_Record;
 
@@ -857,9 +906,11 @@ package body Marlowe.Btree_Handles is
                             Db_Index : in Database_Index)
                            return Boolean
    is
+      use Marlowe.Btree.Data_Definition_Handles;
+      Data : constant Data_Definition_Handle :=
+               Get_Data_Definition (Handle, Table);
       Result : Boolean;
    begin
-      Handle.Tables.Shared_Lock;
 
       declare
          use Marlowe.Tables;
@@ -868,7 +919,7 @@ package body Marlowe.Btree_Handles is
          Header : Marlowe.Tables.Record_Header;
          Data_Handle      : Marlowe.Handles.Data_Page_Handle.Table_Page_Handle;
       begin
-         Handle.Tables.Derive (Data_Handle);
+         Data.Derive (Data_Handle);
 
          Data_Handle.Set_Page (Get_File_And_Page (Addr));
          Data_Handle.Shared_Lock;
@@ -877,7 +928,7 @@ package body Marlowe.Btree_Handles is
          Data_Handle.Shared_Unlock;
       end;
 
-      Handle.Tables.Shared_Unlock;
+      Data.Shared_Unlock;
 
       return Result;
 
@@ -976,6 +1027,36 @@ package body Marlowe.Btree_Handles is
                                          Blocks, Pages, Hits, Misses);
    end Get_Cache_Statistics;
 
+   -------------------------
+   -- Get_Data_Definition --
+   -------------------------
+
+   function Get_Data_Definition
+     (Handle : Btree_Handle;
+      Index  : Table_Index)
+      return Marlowe.Btree.Data_Definition_Handles.Data_Definition_Handle
+   is
+      use Marlowe.Btree.Data_Definition_Handles;
+      Data : Data_Definition_Handle := Handle.Table_Root;
+      Local : Table_Index := Index;
+      Max   : constant Table_Index :=
+                Table_Index (Maximum_Data_Record_Count);
+   begin
+      Data.Shared_Lock;
+      while Local >= Max loop
+         Local := Local - Max;
+         declare
+            Overflow : constant Data_Definition_Handle :=
+                         Data.Get_Overflow_Page;
+         begin
+            Overflow.Shared_Lock;
+            Data.Shared_Unlock;
+            Data := Overflow;
+         end;
+      end loop;
+      return Data;
+   end Get_Data_Definition;
+
    -------------
    -- Get_Key --
    -------------
@@ -1034,8 +1115,10 @@ package body Marlowe.Btree_Handles is
                          Db_Index : in Database_Index;
                          Data     : in System.Address)
    is
+      use Marlowe.Btree.Data_Definition_Handles;
+      Table_Data : constant Data_Definition_Handle :=
+                     Get_Data_Definition (Handle, Index);
    begin
-      Handle.Tables.Shared_Lock;
 
       declare
          use Marlowe.Tables;
@@ -1043,7 +1126,7 @@ package body Marlowe.Btree_Handles is
                   Get_Record_Address (Handle, Index, Db_Index);
          Header : Marlowe.Tables.Record_Header;
          Length : constant Storage_Count :=
-                    Handle.Tables.Get_Record_Length (Index);
+                    Table_Data.Get_Record_Length (Index);
          Have_Overflow : constant Boolean :=
                            Length > Direct_Record_Storage_Units;
          Result        : Storage_Array (1 .. Length);
@@ -1058,7 +1141,7 @@ package body Marlowe.Btree_Handles is
             Last_Header := Direct_Record_Storage_Units;
          end if;
 
-         Handle.Tables.Derive (Data_Handle);
+         Table_Data.Derive (Data_Handle);
 
          Data_Handle.Set_Page (Get_File_And_Page (Addr));
          Data_Handle.Shared_Lock;
@@ -1085,7 +1168,7 @@ package body Marlowe.Btree_Handles is
          Data_Handle.Shared_Unlock;
       end;
 
-      Handle.Tables.Shared_Unlock;
+      Table_Data.Shared_Unlock;
 
    end Get_Record;
 
@@ -1099,8 +1182,11 @@ package body Marlowe.Btree_Handles is
                                return File_Page_And_Slot
    is
       use Marlowe.Handles.Page_Pointer_Page_Handle;
+      use Marlowe.Btree.Data_Definition_Handles;
+      Data : constant Data_Definition_Handle :=
+               Get_Data_Definition (Handle, Index);
       Record_Root_Location : constant File_And_Page :=
-                               Handle.Tables.Get_Record_Root (Index);
+                               Data.Get_Record_Root (Index);
       Reference            : constant Table_Reference :=
         Handle.Table_Refs.Element (Positive (Index));
       Page_Pointers_Per_Page : constant Database_Index :=
@@ -1120,7 +1206,7 @@ package body Marlowe.Btree_Handles is
 
    begin
 
-      Handle.Tables.Derive (Record_Current);
+      Data.Derive (Record_Current);
       Record_Current.Set_Page (Record_Root_Location);
       Record_Current.Shared_Lock;
 
@@ -1135,6 +1221,8 @@ package body Marlowe.Btree_Handles is
       end loop;
 
       Record_Current.Shared_Unlock;
+      Data.Shared_Unlock;
+
       return To_File_Page_And_Slot (Page, Slots (Slots'Last));
 
    end Get_Record_Address;
@@ -1159,8 +1247,14 @@ package body Marlowe.Btree_Handles is
                              Index     : in Table_Index)
                              return String
    is
+      use Marlowe.Btree.Data_Definition_Handles;
+      Table_Data : constant Data_Definition_Handle :=
+                     Get_Data_Definition (Handle, Index);
+      Result     : constant String :=
+                     Table_Data.Get_Record_Name (Index);
    begin
-      return Handle.Tables.Get_Record_Name (Index);
+      Table_Data.Shared_Unlock;
+      return Result;
    end Get_Record_Name;
 
    -------------------
@@ -1381,8 +1475,11 @@ package body Marlowe.Btree_Handles is
       return Database_Index
    is
       use Marlowe.Handles.Page_Pointer_Page_Handle;
+      use Marlowe.Btree.Data_Definition_Handles;
+      Data : constant Data_Definition_Handle :=
+               Get_Data_Definition (Handle, Table);
       Record_Root_Location : constant File_And_Page :=
-                               Handle.Tables.Get_Record_Root (Table);
+                               Data.Get_Record_Root (Table);
       Data_Handle          : Handles.Data_Page_Handle.Table_Page_Handle;
       Overflow_Handle      :
       Handles.Storage_Element_Page_Handle.Table_Page_Handle;
@@ -1448,12 +1545,14 @@ package body Marlowe.Btree_Handles is
 
    begin
 
-      Handle.Tables.Exclusive_Lock;
-      Db_Index := Handle.Tables.Allocate_Record (Table);
-      Length   := Handle.Tables.Get_Record_Length (Table);
-      Handle.Tables.Unlock;
+      Data.Shared_Unlock;
+      Data.Exclusive_Lock;
 
-      Handle.Tables.Derive (Record_Current);
+      Db_Index := Data.Allocate_Record (Table);
+      Length   := Data.Get_Record_Length (Table);
+      Data.Unlock;
+
+      Data.Derive (Record_Current);
       Record_Current.Set_Page (Record_Root_Location);
       Record_Current.Exclusive_Lock;
 
@@ -1494,11 +1593,11 @@ package body Marlowe.Btree_Handles is
          null;
       else
          --  We're going to allocate an overflow page
-         Handle.Tables.Exclusive_Lock;
+         Data.Exclusive_Lock;
 
          declare
             Overflow      : File_Page_And_Slot :=
-              Handle.Tables.Get_Next_Record_Overflow (Table);
+              Data.Get_Next_Record_Overflow (Table);
             Excess        : constant Slot_Index :=
               Slot_Index (Length) -
               Marlowe.Tables.Direct_Record_Storage_Units;
@@ -1527,10 +1626,10 @@ package body Marlowe.Btree_Handles is
                 (Get_File_And_Page (Overflow),
                  Overflow_Slot + Excess);
 
-            Handle.Tables.Set_Next_Record_Overflow
+            Data.Set_Next_Record_Overflow
               (Table, Overflow);
 
-            Handle.Tables.Unlock;
+            Data.Unlock;
          end;
 
       end if;
@@ -1728,22 +1827,38 @@ package body Marlowe.Btree_Handles is
 
       Marlowe.File_Handles.Read
         (Handle.File,
-         Page_Handles.Page_Handle'Class (Handle.Tables),
+         Page_Handles.Page_Handle'Class (Handle.Table_Root),
          Handle.Header.Get_Table_Page);
 
-      for I in 1 .. Table_Index (Handle.Tables.Number_Of_Data_Records)
-      loop
-         declare
-            Loc  : constant File_And_Page :=
-              Handle.Tables.Get_Record_Root (I);
-            Length : constant Storage_Count :=
-              Handle.Tables.Get_Record_Length (I);
-            Ref    : constant Table_Reference :=
-              Create_Table_Reference (I, Length, Loc);
-         begin
-            Handle.Table_Refs.Append (Ref);
-         end;
-      end loop;
+      declare
+         use Marlowe.Btree.Data_Definition_Handles;
+         Table_Data  : Data_Definition_Handle := Handle.Table_Root;
+         First_Index : Table_Index := 0;
+      begin
+         loop
+            for I in 1 .. Table_Index (Table_Data.Number_Of_Data_Records)
+            loop
+               declare
+                  Index  : constant Table_Index := First_Index + I;
+                  Loc    : constant File_And_Page :=
+                             Table_Data.Get_Record_Root (Index);
+                  Length : constant Storage_Count :=
+                             Table_Data.Get_Record_Length (Index);
+                  Ref    : constant Table_Reference :=
+                             Create_Table_Reference (Index, Length, Loc);
+               begin
+                  Handle.Table_Refs.Append (Ref);
+               end;
+            end loop;
+
+
+            exit when Table_Data.Get_Overflow_Page = 0;
+
+            Table_Data := Table_Data.Get_Overflow_Page;
+            First_Index :=
+              First_Index + Table_Index (Maximum_Data_Record_Count);
+         end loop;
+      end;
 
       declare
          use Marlowe.Btree_Header_Page_Handles;
@@ -2046,9 +2161,14 @@ package body Marlowe.Btree_Handles is
          return False;
       end if;
 
-      Handle.Tables.Shared_Lock;
-      Last := Handle.Tables.Last_Record_Index (Table);
-      Handle.Tables.Shared_Unlock;
+      declare
+         use Marlowe.Btree.Data_Definition_Handles;
+         Table_Data : constant Data_Definition_Handle :=
+                        Get_Data_Definition (Handle, Table);
+      begin
+         Last := Table_Data.Last_Record_Index (Table);
+         Table_Data.Shared_Unlock;
+      end;
 
       return Db_Index <= Last;
    end Valid_Index;
@@ -2062,61 +2182,58 @@ package body Marlowe.Btree_Handles is
                            Db_Index : in Database_Index;
                            Data     : in System.Address)
    is
-   begin
-      Handle.Tables.Shared_Lock;
-
-      declare
-         use Marlowe.Tables;
-         Addr : constant File_Page_And_Slot :=
-                  Get_Record_Address (Handle, Index, Db_Index);
-         Header : Marlowe.Tables.Record_Header;
-         Length : constant Storage_Count :=
-                    Handle.Tables.Get_Record_Length (Index);
-         Have_Overflow : constant Boolean :=
+      use Marlowe.Tables;
+      use Marlowe.Btree.Data_Definition_Handles;
+      Table_Data       : constant Data_Definition_Handle :=
+                           Get_Data_Definition (Handle, Index);
+      Addr             : constant File_Page_And_Slot :=
+                           Get_Record_Address (Handle, Index, Db_Index);
+      Header           : Marlowe.Tables.Record_Header;
+      Length           : constant Storage_Count :=
+                           Table_Data.Get_Record_Length (Index);
+      Have_Overflow    : constant Boolean :=
                            Length > Direct_Record_Storage_Units;
-         Result        : Storage_Array (1 .. Length);
-         for Result'Address use Data;
-         Data_Handle      : Marlowe.Handles.Data_Page_Handle.Table_Page_Handle;
-         Overflow_Handle  :
-         Marlowe.Handles.Storage_Element_Page_Handle.Table_Page_Handle;
-         Overflow_Page    : File_And_Page;
-         Overflow_Slot    : Slot_Index;
-         Last_Header      : Storage_Count := Length;
-      begin
-         if Last_Header > Direct_Record_Storage_Units then
-            Last_Header := Direct_Record_Storage_Units;
-         end if;
+      Result           : Storage_Array (1 .. Length);
+      for Result'Address use Data;
+      Data_Handle      : Marlowe.Handles.Data_Page_Handle.Table_Page_Handle;
+      Overflow_Handle  :
+      Marlowe.Handles.Storage_Element_Page_Handle.Table_Page_Handle;
+      Overflow_Page    : File_And_Page;
+      Overflow_Slot    : Slot_Index;
+      Last_Header      : Storage_Count := Length;
+   begin
+      if Last_Header > Direct_Record_Storage_Units then
+         Last_Header := Direct_Record_Storage_Units;
+      end if;
 
-         Handle.Tables.Derive (Data_Handle);
+      Table_Data.Derive (Data_Handle);
 
-         Data_Handle.Set_Page (Get_File_And_Page (Addr));
-         Data_Handle.Exclusive_Lock;
-         if Have_Overflow then
-            Data_Handle.Get_Table_Value (Get_Slot (Addr), Header);
-            Overflow_Page := Get_File_And_Page (Header.Overflow);
-            Overflow_Slot := Get_Slot (Header.Overflow);
-         end if;
+      Data_Handle.Set_Page (Get_File_And_Page (Addr));
+      Data_Handle.Exclusive_Lock;
+      if Have_Overflow then
+         Data_Handle.Get_Table_Value (Get_Slot (Addr), Header);
+         Overflow_Page := Get_File_And_Page (Header.Overflow);
+         Overflow_Slot := Get_Slot (Header.Overflow);
+      end if;
 
-         Header.Data (1 .. Last_Header) := Result (1 .. Last_Header);
-         Data_Handle.Set_Table_Value (Get_Slot (Addr), Header);
+      Header.Data (1 .. Last_Header) := Result (1 .. Last_Header);
+      Data_Handle.Set_Table_Value (Get_Slot (Addr), Header);
 
-         if Have_Overflow then
-            Data_Handle.Derive (Overflow_Handle);
-            Overflow_Handle.Set_Page (Overflow_Page);
-            Overflow_Handle.Exclusive_Lock;
+      if Have_Overflow then
+         Data_Handle.Derive (Overflow_Handle);
+         Overflow_Handle.Set_Page (Overflow_Page);
+         Overflow_Handle.Exclusive_Lock;
 
-            for I in Last_Header + 1 .. Result'Last loop
-               Overflow_Handle.Set_Table_Value
-                 (Slot_Index (I - Last_Header - 1) + Overflow_Slot,
-                  Result (I));
-            end loop;
+         for I in Last_Header + 1 .. Result'Last loop
+            Overflow_Handle.Set_Table_Value
+              (Slot_Index (I - Last_Header - 1) + Overflow_Slot,
+               Result (I));
+         end loop;
 
-            Overflow_Handle.Unlock;
-         end if;
-         Data_Handle.Unlock;
-      end;
-
-      Handle.Tables.Shared_Unlock;
+         Overflow_Handle.Unlock;
+      end if;
+      Data_Handle.Unlock;
+      Table_Data.Shared_Unlock;
 
    end Write_Record;
 
