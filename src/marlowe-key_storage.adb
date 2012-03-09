@@ -283,9 +283,9 @@ package body Marlowe.Key_Storage is
    begin
       for I in Key'Range loop
          X := X + 1;
-         Result (X) := Hex (Natural (Key (I)) / 16);
+         Result (X) := Hex (Natural (Key (I)) / 16 + 1);
          X := X + 1;
-         Result (X) := Hex (Natural (Key (I)) mod 16);
+         Result (X) := Hex (Natural (Key (I)) mod 16 + 1);
          if X < Result'Last then
             X := X + 1;
             Result (X) := ':';
