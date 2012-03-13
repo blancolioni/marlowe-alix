@@ -1043,7 +1043,7 @@ package body Marlowe.Btree_Handles is
                 Table_Index (Maximum_Data_Record_Count);
    begin
       Data.Shared_Lock;
-      while Local >= Max loop
+      while Local > Max loop
          Local := Local - Max;
          declare
             Overflow : constant Data_Definition_Handle :=
