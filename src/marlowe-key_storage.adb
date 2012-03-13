@@ -2,8 +2,6 @@ with Ada.Unchecked_Conversion;
 
 package body Marlowe.Key_Storage is
 
-   type Unsigned_Integer is mod 2 ** Integer'Size;
-
    type Float_Integer is mod 2 ** Float'Size;
    type Long_Float_Integer is mod 2 ** Long_Float'Size;
 
@@ -194,26 +192,6 @@ package body Marlowe.Key_Storage is
    ------------------
 
    procedure From_Storage
-     (Value   :    out Integer;
-      Storage : in     Storage_Array)
-   is
-      X : Unsigned_Integer;
-   begin
-      Unsigned_Integer_Storage.From_Storage (X, Storage);
-      if X = 0 then
-         Value := Integer'First;
-      elsif X >= Unsigned_Integer (Integer'Last) then
-         Value := Integer (X - Unsigned_Integer (Integer'Last));
-      else
-         Value := Integer (X) - Integer'Last;
-      end if;
-   end From_Storage;
-
-   ------------------
-   -- From_Storage --
-   ------------------
-
-   procedure From_Storage
      (Value   :    out Boolean;
       Storage : in     Storage_Array)
    is
@@ -267,6 +245,38 @@ package body Marlowe.Key_Storage is
          Length := Length + 1;
          Value (Length) := Character'Val (Storage (I));
       end loop;
+   end From_Storage;
+
+   ------------------
+   -- From_Storage --
+   ------------------
+
+   procedure From_Storage
+     (Value   :    out Integer;
+      Storage : in     Storage_Array)
+   is
+      X : Unsigned_Integer;
+   begin
+      Unsigned_Integer_Storage.From_Storage (X, Storage);
+      if X = 0 then
+         Value := Integer'First;
+      elsif X >= Unsigned_Integer (Integer'Last) then
+         Value := Integer (X - Unsigned_Integer (Integer'Last));
+      else
+         Value := Integer (X) - Integer'Last;
+      end if;
+   end From_Storage;
+
+   ------------------
+   -- From_Storage --
+   ------------------
+
+   procedure From_Storage
+     (Value   :    out Unsigned_Integer;
+      Storage : in     Storage_Array)
+   is
+   begin
+      Unsigned_Integer_Storage.From_Storage (Value, Storage);
    end From_Storage;
 
    -----------
@@ -340,27 +350,6 @@ package body Marlowe.Key_Storage is
    ----------------
 
    procedure To_Storage
-     (Value   : in     Integer;
-      Storage : in out Storage_Array)
-   is
-      X      : Unsigned_Integer;
-   begin
-      if Value = Integer'First then
-         X := 0;
-      elsif Value < 0 then
-         X := Unsigned_Integer (Value + Integer'Last);
-      else
-         X := Unsigned_Integer (Value) + Unsigned_Integer (Integer'Last);
-      end if;
-
-      Unsigned_Integer_Storage.To_Storage (X, Storage);
-   end To_Storage;
-
-   ----------------
-   -- To_Storage --
-   ----------------
-
-   procedure To_Storage
      (Value   : in     Float;
       Storage : in out Storage_Array)
    is
@@ -398,6 +387,39 @@ package body Marlowe.Key_Storage is
             Storage (I) := 0;
          end if;
       end loop;
+   end To_Storage;
+
+   ----------------
+   -- To_Storage --
+   ----------------
+
+   procedure To_Storage
+     (Value   : in     Integer;
+      Storage : in out Storage_Array)
+   is
+      X      : Unsigned_Integer;
+   begin
+      if Value = Integer'First then
+         X := 0;
+      elsif Value < 0 then
+         X := Unsigned_Integer (Value + Integer'Last);
+      else
+         X := Unsigned_Integer (Value) + Unsigned_Integer (Integer'Last);
+      end if;
+
+      Unsigned_Integer_Storage.To_Storage (X, Storage);
+   end To_Storage;
+
+   ----------------
+   -- To_Storage --
+   ----------------
+
+   procedure To_Storage
+     (Value   : in     Unsigned_Integer;
+      Storage : in out Storage_Array)
+   is
+   begin
+      Unsigned_Integer_Storage.To_Storage (Value, Storage);
    end To_Storage;
 
    ----------------------

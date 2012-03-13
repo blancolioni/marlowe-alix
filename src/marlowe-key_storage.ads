@@ -2,6 +2,8 @@ with System.Storage_Elements;
 
 package Marlowe.Key_Storage is
 
+   type Unsigned_Integer is mod 2 ** Integer'Size;
+
    subtype Storage_Array is System.Storage_Elements.Storage_Array;
 
    function To_Storage_Array (Value : Database_Index)
@@ -38,6 +40,10 @@ package Marlowe.Key_Storage is
       Storage : in out Storage_Array);
 
    procedure To_Storage
+     (Value   : in     Unsigned_Integer;
+      Storage : in out Storage_Array);
+
+   procedure To_Storage
      (Value   : in     Float;
       Storage : in out Storage_Array);
 
@@ -55,6 +61,10 @@ package Marlowe.Key_Storage is
 
    procedure From_Storage
      (Value   :    out Integer;
+      Storage : in     Storage_Array);
+
+   procedure From_Storage
+     (Value   :    out Unsigned_Integer;
       Storage : in     Storage_Array);
 
    procedure From_Storage
