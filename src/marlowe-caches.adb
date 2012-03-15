@@ -540,13 +540,32 @@ package body Marlowe.Caches is
 
       Marlowe.Locks.Exclusive_Lock (From_Cache.Cache_Lock.all);
 
-      Info := new Cached_Page_Info_Record;
-      From_Cache.Size := From_Cache.Size + 1;
-      if From_Cache.Size >= From_Cache.Max_Size then
-         Ada.Text_IO.Put_Line ("Maximum cache reached");
-      elsif From_Cache.Size mod 4096 = 0 then
-         Ada.Text_IO.Put (Natural'Image (From_Cache.Size / 4096));
-         Ada.Text_IO.Flush;
+      Info := Get_Cached_Page (From_Cache, Location);
+      if Info /= null then
+         Info.From_Cache.LRU_List.Delete (Info.Position);
+      else
+         Info := new Cached_Page_Info_Record;
+         From_Cache.Size := From_Cache.Size + 1;
+         if From_Cache.Size >= From_Cache.Max_Size then
+            Ada.Text_IO.Put_Line ("Maximum cache reached");
+         elsif From_Cache.Size mod 4096 = 0 then
+            Ada.Text_IO.Put (Natural'Image (From_Cache.Size / 4096));
+            Ada.Text_IO.Flush;
+         end if;
+
+         if From_Cache.Hash_Table.Contains (Location) then
+            declare
+               E : Cached_Page_Info :=
+                     From_Cache.Hash_Table.Element (Location);
+            begin
+               while E.Next /= null loop
+                  E := E.Next;
+               end loop;
+               E.Next := Info;
+            end;
+         else
+            From_Cache.Hash_Table.Insert (Location, Info);
+         end if;
       end if;
 
       Result := Info.Cached_Page'Access;
@@ -558,20 +577,6 @@ package body Marlowe.Caches is
       Info.Dirty       := True;
       Info.Next        := null;
       Info.Position    := List_Of_Cached_Pages.No_Element;
-
-      if From_Cache.Hash_Table.Contains (Location) then
-         declare
-            E : Cached_Page_Info :=
-                  From_Cache.Hash_Table.Element (Location);
-         begin
-            while E.Next /= null loop
-               E := E.Next;
-            end loop;
-            E.Next := Info;
-         end;
-      else
-         From_Cache.Hash_Table.Insert (Location, Info);
-      end if;
 
       if Marlowe.Trace.Tracing then
          Ada.Text_IO.Put_Line ("New_Page: Removing exclusive lock: " &
