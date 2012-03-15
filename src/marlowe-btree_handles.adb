@@ -428,11 +428,6 @@ package body Marlowe.Btree_Handles is
       use Marlowe.Btree.Data_Definition_Handles;
    begin
 
-      Ada.Text_IO.Put_Line ("Create btree handle: " & Name);
-      Ada.Text_IO.Put_Line ("  max btrees in header:"
-                              & Natural'Image
-                              (Pages.Btree_Header.Maximum_Btree_Count));
-
       Handle := new Btree_Handle_Record;
 
       if Marlowe.Allocation.Debug_Allocation then
@@ -1888,7 +1883,7 @@ package body Marlowe.Btree_Handles is
             Ref.Key_Length :=
               System.Storage_Elements.Storage_Offset
               (Btree_Header_Page_Handles.Get_Btree_Key_Length (Header,
-                                                               Index));
+                 Index));
             List_Of_References.Append (Handle.Refs, Ref);
          end loop;
       end;
