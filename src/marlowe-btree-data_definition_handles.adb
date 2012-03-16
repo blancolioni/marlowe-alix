@@ -23,10 +23,13 @@ package body Marlowe.Btree.Data_Definition_Handles is
                              Index   : Table_Index)
                              return Database_Index
    is
+      Result : constant Database_Index :=
+                 Marlowe.Pages.Data_Definition.Allocate_Record
+                   (Item.The_Data_Definition_Page,
+                    Item.Local_Index (Index));
    begin
-      return Marlowe.Pages.Data_Definition.Allocate_Record
-        (Item.The_Data_Definition_Page,
-         Item.Local_Index (Index));
+      Item.Set_Dirty;
+      return Result;
    end Allocate_Record;
 
    ------------------------------
