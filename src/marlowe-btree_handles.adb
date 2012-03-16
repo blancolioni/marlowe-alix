@@ -21,8 +21,6 @@ with Marlowe.Key_Storage;
 
 with Marlowe.File_Handles;
 
-with Marlowe.Pages.Btree_Header;
-
 with Marlowe.Debug_Classes;
 with Marlowe.Debug;
 
@@ -1114,6 +1112,8 @@ package body Marlowe.Btree_Handles is
       Table_Data : constant Data_Definition_Handle :=
                      Get_Data_Definition (Handle, Index);
    begin
+
+      Trace ("Get_Record:" & Index'Img & Db_Index'Img);
 
       declare
          use Marlowe.Tables;
