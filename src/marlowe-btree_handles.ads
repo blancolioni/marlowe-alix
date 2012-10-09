@@ -67,6 +67,10 @@ package Marlowe.Btree_Handles is
                             Table    : in Table_Index;
                             Db_Index : in Database_Index);
 
+   function Record_Length (Handle : in Btree_Handle;
+                           Table  : in Table_Index)
+                           return System.Storage_Elements.Storage_Count;
+
    function Valid_Index (Handle   : in Btree_Handle;
                          Table    : in Table_Index;
                          Db_Index : in Database_Index)
