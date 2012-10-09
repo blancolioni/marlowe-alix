@@ -267,6 +267,8 @@ package body Marlowe.Btree_Handles is
       use Marlowe.Btree_Page_Handles;
    begin
       if Mark.Slot /= 0 then
+--           Ada.Text_IO.Put_Line ("Adjusting mark: " &
+--                                 Image (Mark.Page.Get_Location));
          Btree_Page_Handles.Shared_Lock (Mark.Page);
       end if;
    end Adjust;
@@ -1000,6 +1002,8 @@ package body Marlowe.Btree_Handles is
    procedure Finalize (Mark : in out Btree_Mark) is
    begin
       if Mark.Slot /= 0 then
+--           Ada.Text_IO.Put_Line ("Finalizing mark: " &
+--                                 Image (Mark.Page.Get_Location));
          Btree_Page_Handles.Shared_Unlock (Mark.Page);
          Mark.Slot := 0;
       end if;
@@ -1545,50 +1549,12 @@ package body Marlowe.Btree_Handles is
 
       Db_Index := Data.Allocate_Record (Table);
       Length   := Data.Get_Record_Length (Table);
-      Data.Unlock;
-
-      Data.Derive (Record_Current);
-      Record_Current.Set_Page (Record_Root_Location);
-      Record_Current.Exclusive_Lock;
-
-      Trace ("insert_record: db_index =" & Db_Index'Img);
-
-      declare
-         Slot_Path : constant Array_Of_Slots :=
-                       Get_Slot_Path (Page_Pointers_Per_Page,
-                                      Db_Records_Per_Page,
-                                      Db_Index);
-      begin
-         Trace ("Slot_Path length: " & Natural'Image (Slot_Path'Length));
-         for I in Slot_Path'Range loop
-            Trace (Slot_Index'Image (Slot_Path (I)));
-         end loop;
-
-         for I in 1 .. Slot_Path'Last - 1 loop
-            Slot := Slot_Path (I);
-            Page := Record_Current.Get_Table_Value (Slot);
-            if I < Slot_Path'Last - 1 then
-               Ensure_Page;
-            else
-               Ensure_Data_Page;
-            end if;
-
-         end loop;
-
-         Slot := Slot_Path (Slot_Path'Last);
-
-      end;
 
       Header.Data := (others => 0);
       Header.Overflow := 0;
 
-      if Length <= Marlowe.Tables.Direct_Record_Storage_Units then
-         --  Nothing more to do, the previous part of this function
-         --  allocated the necessary pointers as it went
-         null;
-      else
+      if Length > Marlowe.Tables.Direct_Record_Storage_Units then
          --  We're going to allocate an overflow page
-         Data.Exclusive_Lock;
 
          declare
             Overflow      : File_Page_And_Slot :=
@@ -1623,11 +1589,43 @@ package body Marlowe.Btree_Handles is
 
             Data.Set_Next_Record_Overflow
               (Table, Overflow);
-
-            Data.Unlock;
          end;
 
       end if;
+
+      Data.Unlock;
+
+      Data.Derive (Record_Current);
+      Record_Current.Set_Page (Record_Root_Location);
+      Record_Current.Exclusive_Lock;
+
+      Trace ("insert_record: db_index =" & Db_Index'Img);
+
+      declare
+         Slot_Path : constant Array_Of_Slots :=
+                       Get_Slot_Path (Page_Pointers_Per_Page,
+                                      Db_Records_Per_Page,
+                                      Db_Index);
+      begin
+         Trace ("Slot_Path length: " & Natural'Image (Slot_Path'Length));
+         for I in Slot_Path'Range loop
+            Trace (Slot_Index'Image (Slot_Path (I)));
+         end loop;
+
+         for I in 1 .. Slot_Path'Last - 1 loop
+            Slot := Slot_Path (I);
+            Page := Record_Current.Get_Table_Value (Slot);
+            if I < Slot_Path'Last - 1 then
+               Ensure_Page;
+            else
+               Ensure_Data_Page;
+            end if;
+
+         end loop;
+
+         Slot := Slot_Path (Slot_Path'Last);
+
+      end;
 
       Data_Handle.Set_Table_Value (Slot, Header);
 
@@ -1888,6 +1886,21 @@ package body Marlowe.Btree_Handles is
          end loop;
       end;
    end Open;
+
+   -------------------
+   -- Record_Length --
+   -------------------
+
+   function Record_Length (Handle : in Btree_Handle;
+                           Table  : in Table_Index)
+                           return System.Storage_Elements.Storage_Count
+   is
+      use Marlowe.Btree.Data_Definition_Handles;
+      Table_Data : constant Data_Definition_Handle :=
+                     Get_Data_Definition (Handle, Table);
+   begin
+      return Table_Data.Get_Record_Length (Table);
+   end Record_Length;
 
    -------------
    -- Release --
