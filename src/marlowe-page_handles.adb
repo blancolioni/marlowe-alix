@@ -1,3 +1,6 @@
+with Ada.Exceptions;
+with Ada.Text_IO;
+
 with Marlowe.Page_Types;
 
 package body Marlowe.Page_Handles is
@@ -61,6 +64,19 @@ package body Marlowe.Page_Handles is
 --              Trace ("end Finalizing: " & Image (Loc));
 --           end;
       end if;
+   exception
+      when E : others =>
+         Ada.Text_IO.Put_Line ("Exception while finalizing page "
+                               & Image (Handle.Get_Location)
+                               & ": "
+                               & Ada.Exceptions.Exception_Name (E));
+         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Message (E));
+         Ada.Text_IO.Put_Line
+           ("Page type: "
+            & Marlowe.Page_Types.Page_Type'Image
+              (Marlowe.Pages.Get_Page_Type
+                 (Handle.The_Page)));
+
    end Finalize;
 
    ------------------
