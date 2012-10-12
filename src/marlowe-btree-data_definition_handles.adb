@@ -273,6 +273,7 @@ package body Marlowe.Btree.Data_Definition_Handles is
       New_Root : in File_And_Page)
    is
    begin
+      Item.Set_Dirty;
       Marlowe.Pages.Data_Definition.Set_Record_Root
         (Item.The_Data_Definition_Page,
          Item.Local_Index (Index),
