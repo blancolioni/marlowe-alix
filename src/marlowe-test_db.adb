@@ -30,6 +30,7 @@ package body Marlowe.Test_Db is
 
       procedure Task_Complete is
       begin
+         Ada.Text_IO.Put_Line ("Task Complete");
          Running := Running - 1;
       end Task_Complete;
 
@@ -47,6 +48,15 @@ package body Marlowe.Test_Db is
    task type Insert_Task is
       entry Start (Low, High : Integer);
    end Insert_Task;
+
+   type Search_Task_Access is access Search_Task;
+   type Insert_Task_Access is access Insert_Task;
+
+   Max_Tasks : constant := 20;
+   Search_Tasks : array (1 .. Max_Tasks) of Search_Task_Access;
+   Search_Task_Count : Natural := 0;
+   Insert_Tasks : array (1 .. Max_Tasks) of Insert_Task_Access;
+   Insert_Task_Count : Natural := 0;
 
    -----------------
    -- Insert_Task --
@@ -184,10 +194,11 @@ package body Marlowe.Test_Db is
    -----------------------
 
    procedure Start_Insert_Task (Start, Finish : Integer) is
-      T : constant access Insert_Task := new Insert_Task;
    begin
+      Insert_Task_Count := Insert_Task_Count + 1;
+      Insert_Tasks (Insert_Task_Count) := new Insert_Task;
       Wait_Object.New_Task;
-      T.Start (Start, Finish);
+      Insert_Tasks (Insert_Task_Count).Start (Start, Finish);
    end Start_Insert_Task;
 
    -----------------------
@@ -195,10 +206,11 @@ package body Marlowe.Test_Db is
    -----------------------
 
    procedure Start_Search_Task (Start, Finish : Integer) is
-      T : constant access Search_Task := new Search_Task;
    begin
+      Search_Task_Count := Search_Task_Count + 1;
+      Search_Tasks (Search_Task_Count) := new Search_Task;
       Wait_Object.New_Task;
-      T.Start (Start, Finish);
+      Search_Tasks (Search_Task_Count).Start (Start, Finish);
    end Start_Search_Task;
 
    ----------

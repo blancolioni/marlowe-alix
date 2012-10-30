@@ -3,6 +3,7 @@ with Ada.Exceptions;
 with Ada.Text_IO;
 
 with Marlowe.Test_Db;
+with Marlowe.Trace;
 
 procedure Marlowe.Multi_Driver is
 
@@ -11,7 +12,7 @@ procedure Marlowe.Multi_Driver is
 
    Dataset_Size         : constant := 100_000;
    Insert_Task_Count    : constant := 1;
-   Search_Task_Count    : constant := 1;
+   Search_Task_Count    : constant := 2;
    Insert_Per_Task_Size : constant := Dataset_Size / Insert_Task_Count;
    Search_Per_Task_Size : constant := Dataset_Size / Search_Task_Count;
 
@@ -37,9 +38,12 @@ begin
             Finish : constant Positive :=
                        Start + Insert_Per_Task_Size - 1;
          begin
+            Ada.Text_IO.Put_Line ("Starting task" & I'Img);
             Marlowe.Test_Db.Start_Insert_Task (Start, Finish);
          end;
       end loop;
+      Ada.Text_IO.Put_Line ("Waiting for" & Insert_Task_Count'Img
+                              & " tasks to finish");
       Marlowe.Test_Db.Wait;
 
       Finish_Time := Ada.Calendar.Clock;
@@ -52,7 +56,7 @@ begin
                                Positive'Image (Insert_Task_Count) &
                                "; # records =" &
                                Positive'Image (Dataset_Size) &
-                               "; time =" & D'Img & "s");
+                                 "; time =" & D'Img & "s");
       end;
 
       Marlowe.Test_Db.Close;
@@ -61,6 +65,9 @@ begin
    end if;
 
    if Search_Database then
+
+      Marlowe.Trace.Tracing := False;
+
       Marlowe.Test_Db.Open;
 
       Start_Time := Ada.Calendar.Clock;
@@ -72,9 +79,13 @@ begin
             Finish : constant Positive :=
                        Start + Search_Per_Task_Size - 1;
          begin
+            Ada.Text_IO.Put_Line ("Starting task" & I'Img);
             Marlowe.Test_Db.Start_Search_Task (Start, Finish);
          end;
       end loop;
+
+      Ada.Text_IO.Put_Line ("Waiting for" & Search_Task_Count'Img
+                              & " tasks to finish");
       Marlowe.Test_Db.Wait;
 
       Finish_Time := Ada.Calendar.Clock;
