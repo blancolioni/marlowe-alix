@@ -30,7 +30,6 @@ package body Marlowe.Test_Db is
 
       procedure Task_Complete is
       begin
-         Ada.Text_IO.Put_Line ("Task Complete");
          Running := Running - 1;
       end Task_Complete;
 
@@ -52,7 +51,7 @@ package body Marlowe.Test_Db is
    type Search_Task_Access is access Search_Task;
    type Insert_Task_Access is access Insert_Task;
 
-   Max_Tasks : constant := 20;
+   Max_Tasks : constant := 64;
    Search_Tasks : array (1 .. Max_Tasks) of Search_Task_Access;
    Search_Task_Count : Natural := 0;
    Insert_Tasks : array (1 .. Max_Tasks) of Insert_Task_Access;
