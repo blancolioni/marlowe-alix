@@ -7,11 +7,12 @@ with Marlowe.Trace;
 
 procedure Marlowe.Multi_Driver is
 
-   Create_Database      : constant Boolean := True;
+   Create_Database      : constant Boolean := False;
    Search_Database      : constant Boolean := True;
 
    Dataset_Size          : constant := 100_000;
    Insert_Task_Count     : constant := 1;
+   Min_Search_Task_Count : constant := 6;
    Max_Search_Task_Count : constant := 6;
    Insert_Per_Task_Size  : constant := Dataset_Size / Insert_Task_Count;
 
@@ -69,7 +70,9 @@ begin
 
       Marlowe.Test_Db.Open;
 
-      for Search_Task_Count in 1 .. Max_Search_Task_Count loop
+      for Search_Task_Count in
+        Min_Search_Task_Count .. Max_Search_Task_Count
+      loop
 
          declare
             Search_Per_Task_Size  : constant Positive :=
