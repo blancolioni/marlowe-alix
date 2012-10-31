@@ -211,6 +211,11 @@ package body Marlowe.Key_Storage is
       X : Float_Integer;
    begin
       Float_Storage.From_Storage (X, Storage);
+      if X < 2 ** (Float'Size - 1) then
+         X := Float_Integer'Last - X;
+      else
+         X := X - 2 ** (Float'Size - 1);
+      end if;
       Value := To_Float (X);
    end From_Storage;
 
@@ -225,6 +230,11 @@ package body Marlowe.Key_Storage is
       X : Long_Float_Integer;
    begin
       Long_Float_Storage.From_Storage (X, Storage);
+      if X < 2 ** (Long_Float'Size - 1) then
+         X := Long_Float_Integer'Last - X;
+      else
+         X := X - 2 ** (Long_Float'Size - 1);
+      end if;
       Value := To_Long_Float (X);
    end From_Storage;
 
@@ -353,8 +363,15 @@ package body Marlowe.Key_Storage is
      (Value   : in     Float;
       Storage : in out Storage_Array)
    is
+      X : Float_Integer :=
+            To_Float_Integer (Value);
    begin
-      Float_Storage.To_Storage (To_Float_Integer (Value), Storage);
+      if X >= 2 ** (Float'Size - 1) then
+         X := Float_Integer'Last - X;
+      else
+         X := X + 2 ** (Float'Size - 1);
+      end if;
+      Float_Storage.To_Storage (X, Storage);
    end To_Storage;
 
    ----------------
@@ -365,8 +382,15 @@ package body Marlowe.Key_Storage is
      (Value   : in     Long_Float;
       Storage : in out Storage_Array)
    is
+      X : Long_Float_Integer :=
+            To_Long_Float_Integer (Value);
    begin
-      Long_Float_Storage.To_Storage (To_Long_Float_Integer (Value), Storage);
+      if X >= 2 ** (Long_Float'Size - 1) then
+         X := Long_Float_Integer'Last - X;
+      else
+         X := X + 2 ** (Long_Float'Size - 1);
+      end if;
+      Long_Float_Storage.To_Storage (X, Storage);
    end To_Storage;
 
    ----------------
@@ -472,9 +496,15 @@ package body Marlowe.Key_Storage is
       return System.Storage_Elements.Storage_Array
    is
       use type System.Storage_Elements.Storage_Count;
+      X : Float_Integer := To_Float_Integer (Value);
    begin
+      if X >= 2 ** (Float'Size - 1) then
+         X := Float_Integer'Last - X;
+      else
+         X := X + 2 ** (Float'Size - 1);
+      end if;
       return Float_Integer_Components.To_Storage_Array
-        (To_Float_Integer (Value), Float'Size / System.Storage_Unit);
+        (X, Float'Size / System.Storage_Unit);
    end To_Storage_Array;
 
    ----------------------
@@ -486,9 +516,15 @@ package body Marlowe.Key_Storage is
       return System.Storage_Elements.Storage_Array
    is
       use type System.Storage_Elements.Storage_Count;
+      X : Long_Float_Integer := To_Long_Float_Integer (Value);
    begin
+      if X >= 2 ** (Long_Float'Size - 1) then
+         X := Long_Float_Integer'Last - X;
+      else
+         X := X + 2 ** (Long_Float'Size - 1);
+      end if;
       return Long_Float_Integer_Components.To_Storage_Array
-        (To_Long_Float_Integer (Value), Long_Float'Size / System.Storage_Unit);
+        (X, Long_Float'Size / System.Storage_Unit);
    end To_Storage_Array;
 
    ----------------------
