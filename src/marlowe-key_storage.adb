@@ -401,6 +401,7 @@ package body Marlowe.Key_Storage is
      (Value   : in     String;
       Storage : in out Storage_Array)
    is
+      use System.Storage_Elements;
       Index : Positive := Value'First;
    begin
       for I in Storage'Range loop
@@ -411,6 +412,10 @@ package body Marlowe.Key_Storage is
             Storage (I) := 0;
          end if;
       end loop;
+      Storage (Storage'Last - 1) :=
+        Storage_Element (Value'Length / (2**System.Storage_Unit));
+      Storage (Storage'Last) :=
+        Storage_Element (Value'Length mod (2**System.Storage_Unit));
    end To_Storage;
 
    ----------------
