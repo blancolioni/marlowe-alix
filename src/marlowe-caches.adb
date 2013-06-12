@@ -1,4 +1,3 @@
-with Ada.Calendar;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Hashed_Maps;
 with Ada.Text_IO;
@@ -26,7 +25,6 @@ package body Marlowe.Caches is
          Cached_Page : aliased Marlowe.Pages.Page_Record;
          Dirty       : Boolean            := False;
          Location    : File_And_Page;
-         Last_Access : Ada.Calendar.Time;
          References  : Natural            := 1;
          From_Cache  : File_Cache;
          Page_Lock   : Marlowe.Locks.Lock;
@@ -413,7 +411,6 @@ package body Marlowe.Caches is
             --  Ask Marlowe to read the page from disk
             Marlowe.Files.Read (From_Cache.File, Location, Info.Cached_Page);
 
-            Info.Last_Access := Ada.Calendar.Clock;
             Info.From_Cache  := From_Cache;
             Info.Location    := Location;
             Info.References  := 1;
@@ -570,7 +567,6 @@ package body Marlowe.Caches is
 
       Result := Info.Cached_Page'Access;
 
-      Info.Last_Access := Ada.Calendar.Clock;
       Info.From_Cache  := From_Cache;
       Info.Location    := Location;
       Info.References  := 1;
@@ -631,9 +627,12 @@ package body Marlowe.Caches is
    ------------------
 
    procedure Set_Accessed (Info : Cached_Page_Info) is
+      pragma Unreferenced (Info);
    begin
       --  Enter ("Set_Accessed");
-      Info.Last_Access := Ada.Calendar.Clock;
+      --  Info.Last_Access := Ada.Calendar.Clock;
+
+      null;
 
       --  Leave ("Set_Accessed");
    end Set_Accessed;
