@@ -189,6 +189,10 @@ package body Marlowe.Btree_Handles is
       Max    : constant Natural := Maximum_Data_Record_Count;
       Table  : Data_Definition_Handle := Handle.Table_Root;
    begin
+
+      --  Find a table page that is either not full, or has
+      --  no overflow page.
+
       Table.Exclusive_Lock;
       while Table.Number_Of_Data_Records = Max
         and then Table.Get_Overflow_Page /= 0
@@ -205,6 +209,10 @@ package body Marlowe.Btree_Handles is
       end loop;
 
       if Table.Number_Of_Data_Records = Max then
+
+         --  Page is full, which means (by the while loop condition)
+         --  it doesn't have an overflow page.  We create a new one now.
+
          declare
             Overflow : Data_Definition_Handle;
          begin
@@ -216,6 +224,9 @@ package body Marlowe.Btree_Handles is
             Table := Overflow;
          end;
       end if;
+
+      --  Add the table definition, and allocate a table root page
+      --  and an initial direct pointer page.
 
       declare
          Local_Index : constant Table_Index :=
