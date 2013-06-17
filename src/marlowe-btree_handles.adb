@@ -12,6 +12,7 @@ with Marlowe.Pages;
 with Marlowe.Tables;
 
 with Marlowe.Handles.Data_Page_Handle;
+with Marlowe.Handles.Field_Extension_Page_Handles;
 with Marlowe.Handles.Page_Pointer_Page_Handle;
 with Marlowe.Handles.Storage_Element_Page_Handle;
 
@@ -452,6 +453,23 @@ package body Marlowe.Btree_Handles is
       Btree_Header_Page_Handles.Unlock (Handle.Header);
       Marlowe.Btree.Data_Definition_Handles.Unlock (Handle.Table_Root);
    end Create;
+
+   ----------------------------
+   -- Create_Field_Extension --
+   ----------------------------
+
+   function Create_Field_Extension
+     (Handle : Btree_Handle)
+      return File_And_Page
+   is
+      use Marlowe.Handles.Field_Extension_Page_Handles;
+      Extension_Handle : Field_Extension_Page_Handle;
+   begin
+      Marlowe.File_Handles.Allocate
+        (Handle.File,
+         Page_Handles.Page_Handle'Class (Extension_Handle));
+      return Extension_Handle.Get_Location;
+   end Create_Field_Extension;
 
    ----------------------------
    -- Create_Table_Reference --
@@ -1887,6 +1905,41 @@ package body Marlowe.Btree_Handles is
       end;
    end Open;
 
+   --------------------------
+   -- Read_Field_Extension --
+   --------------------------
+
+   function Read_Field_Extension
+     (Handle    : Btree_Handle;
+      Reference : File_And_Page)
+      return System.Storage_Elements.Storage_Array
+   is
+      use Marlowe.Handles.Field_Extension_Page_Handles;
+      pragma Unreferenced (Handle);
+
+      function Read_Rest (Start : File_And_Page) return Storage_Array;
+
+      ---------------
+      -- Read_Rest --
+      ---------------
+
+      function Read_Rest (Start : File_And_Page) return Storage_Array is
+         Rest_Handle : Field_Extension_Page_Handle;
+      begin
+         Rest_Handle.Set_Page (Start);
+         Rest_Handle.Shared_Lock;
+         if Rest_Handle.Overflow_Page = 0 then
+            return Rest_Handle.Extension_Data;
+         else
+            return Rest_Handle.Extension_Data
+              & Read_Rest (Rest_Handle.Overflow_Page);
+         end if;
+      end Read_Rest;
+
+   begin
+      return Read_Rest (Reference);
+   end Read_Field_Extension;
+
    -------------------
    -- Record_Length --
    -------------------
@@ -2180,6 +2233,58 @@ package body Marlowe.Btree_Handles is
 
       return Db_Index <= Last;
    end Valid_Index;
+
+   ---------------------------
+   -- Write_Field_Extension --
+   ---------------------------
+
+   procedure Write_Field_Extension
+     (Handle    : Btree_Handle;
+      Reference : File_And_Page;
+      Data      : System.Storage_Elements.Storage_Array)
+   is
+      use Marlowe.Handles.Field_Extension_Page_Handles;
+      Extension_Handle : Field_Extension_Page_Handle;
+      Next             : Storage_Offset;
+      Overflow_Location : File_And_Page;
+   begin
+      Extension_Handle.Set_Page (Reference);
+      Extension_Handle.Exclusive_Lock;
+      Overflow_Location := Extension_Handle.Overflow_Page;
+
+      Extension_Handle.Set_Extension_Data (Data, Next);
+      while Next < Data'Last loop
+         declare
+            Next_Handle : Field_Extension_Page_Handle;
+         begin
+            if Overflow_Location = 0 then
+               Marlowe.File_Handles.Allocate
+                 (File => Handle.File,
+                  Page => Next_Handle);
+            else
+               Next_Handle.Set_Page (Overflow_Location);
+               Next_Handle.Exclusive_Lock;
+            end if;
+            Overflow_Location := Next_Handle.Overflow_Page;
+            Next_Handle.Set_Extension_Data
+              (Data (Next .. Data'Last), Next);
+         end;
+      end loop;
+
+      while Overflow_Location /= 0 loop
+         declare
+            Next_Handle : Field_Extension_Page_Handle;
+            Next_Overflow : File_And_Page;
+         begin
+            Next_Handle.Set_Page (Overflow_Location);
+            Next_Overflow := Next_Handle.Overflow_Page;
+            Next_Handle.Unlock;
+            Marlowe.File_Handles.Deallocate (Handle.File, Overflow_Location);
+            Overflow_Location := Next_Overflow;
+         end;
+      end loop;
+
+   end Write_Field_Extension;
 
    ------------------
    -- Write_Record --

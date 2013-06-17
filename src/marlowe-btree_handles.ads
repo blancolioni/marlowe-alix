@@ -143,6 +143,19 @@ package Marlowe.Btree_Handles is
    --  early using this procedure.  The mark can no longer be used
    --  after it is released.
 
+   function Create_Field_Extension
+     (Handle : Btree_Handle)
+      return File_And_Page;
+
+   function Read_Field_Extension
+     (Handle    : Btree_Handle;
+      Reference : File_And_Page)
+      return System.Storage_Elements.Storage_Array;
+
+   procedure Write_Field_Extension
+     (Handle    : Btree_Handle;
+      Reference : File_And_Page;
+      Data      : System.Storage_Elements.Storage_Array);
 
    function Check_Tree (Handle    : Btree_Handle;
                         Reference : Btree_Reference)
