@@ -282,6 +282,20 @@ package body Marlowe.Key_Storage is
    ------------------
 
    procedure From_Storage
+     (Value   :    out File_And_Page;
+      Storage : in     Storage_Array)
+   is
+      X : Database_Index;
+   begin
+      From_Storage (X, Storage);
+      Value := File_And_Page (X);
+   end From_Storage;
+
+   ------------------
+   -- From_Storage --
+   ------------------
+
+   procedure From_Storage
      (Value   :    out Unsigned_Integer;
       Storage : in     Storage_Array)
    is
@@ -341,6 +355,18 @@ package body Marlowe.Key_Storage is
    is
    begin
       Database_Index_Storage.To_Storage (Value, Storage);
+   end To_Storage;
+
+   ----------------
+   -- To_Storage --
+   ----------------
+
+   procedure To_Storage
+     (Value   : in     File_And_Page;
+      Storage : in out Storage_Array)
+   is
+   begin
+      To_Storage (Database_Index (Value), Storage);
    end To_Storage;
 
    ----------------

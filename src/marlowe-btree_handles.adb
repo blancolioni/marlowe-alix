@@ -475,11 +475,14 @@ package body Marlowe.Btree_Handles is
    is
       use Marlowe.Handles.Field_Extension_Page_Handles;
       Extension_Handle : Field_Extension_Page_Handle;
+      Result : File_And_Page;
    begin
       Marlowe.File_Handles.Allocate
         (Handle.File,
          Page_Handles.Page_Handle'Class (Extension_Handle));
-      return Extension_Handle.Get_Location;
+      Result := Extension_Handle.Get_Location;
+      Extension_Handle.Unlock;
+      return Result;
    end Create_Field_Extension;
 
    ----------------------------
@@ -1926,7 +1929,6 @@ package body Marlowe.Btree_Handles is
       return System.Storage_Elements.Storage_Array
    is
       use Marlowe.Handles.Field_Extension_Page_Handles;
-      pragma Unreferenced (Handle);
 
       function Read_Rest (Start : File_And_Page) return Storage_Array;
 
@@ -1937,6 +1939,7 @@ package body Marlowe.Btree_Handles is
       function Read_Rest (Start : File_And_Page) return Storage_Array is
          Rest_Handle : Field_Extension_Page_Handle;
       begin
+         Handle.Header.Derive (Rest_Handle);
          Rest_Handle.Set_Page (Start);
          Rest_Handle.Shared_Lock;
          if Rest_Handle.Overflow_Page = 0 then
@@ -2255,10 +2258,12 @@ package body Marlowe.Btree_Handles is
       Data      : System.Storage_Elements.Storage_Array)
    is
       use Marlowe.Handles.Field_Extension_Page_Handles;
-      Extension_Handle : Field_Extension_Page_Handle;
-      Next             : Storage_Offset;
-      Overflow_Location : File_And_Page;
+      Extension_Handle  : Field_Extension_Page_Handle;
+      Next              : Storage_Offset;
+      Overflow_Location : File_And_Page := Reference;
    begin
+
+      Handle.Header.Derive (Extension_Handle);
       Extension_Handle.Set_Page (Reference);
       Extension_Handle.Exclusive_Lock;
       Overflow_Location := Extension_Handle.Overflow_Page;
@@ -2268,17 +2273,22 @@ package body Marlowe.Btree_Handles is
          declare
             Next_Handle : Field_Extension_Page_Handle;
          begin
+            Extension_Handle.Derive (Next_Handle);
             if Overflow_Location = 0 then
                Marlowe.File_Handles.Allocate
                  (File => Handle.File,
                   Page => Next_Handle);
+               Extension_Handle.Set_Overflow_Page (Next_Handle.Get_Location);
             else
                Next_Handle.Set_Page (Overflow_Location);
                Next_Handle.Exclusive_Lock;
             end if;
+            Extension_Handle.Unlock;
+
             Overflow_Location := Next_Handle.Overflow_Page;
             Next_Handle.Set_Extension_Data
               (Data (Next .. Data'Last), Next);
+            Extension_Handle := Next_Handle;
          end;
       end loop;
 
@@ -2287,6 +2297,7 @@ package body Marlowe.Btree_Handles is
             Next_Handle : Field_Extension_Page_Handle;
             Next_Overflow : File_And_Page;
          begin
+            Extension_Handle.Derive (Next_Handle);
             Next_Handle.Set_Page (Overflow_Location);
             Next_Overflow := Next_Handle.Overflow_Page;
             Next_Handle.Unlock;
@@ -2294,6 +2305,8 @@ package body Marlowe.Btree_Handles is
             Overflow_Location := Next_Overflow;
          end;
       end loop;
+
+      Extension_Handle.Unlock;
 
    end Write_Field_Extension;
 
