@@ -55,6 +55,10 @@ package Marlowe.Key_Storage is
      (Value   : in     String;
       Storage : in out Storage_Array);
 
+   procedure To_Storage
+     (Value   : in     File_And_Page;
+      Storage : in out Storage_Array);
+
    procedure From_Storage
      (Value   :    out Database_Index;
       Storage : in     Storage_Array);
@@ -77,6 +81,10 @@ package Marlowe.Key_Storage is
 
    procedure From_Storage
      (Value   :    out Long_Float;
+      Storage : in     Storage_Array);
+
+   procedure From_Storage
+     (Value   :    out File_And_Page;
       Storage : in     Storage_Array);
 
    procedure From_Storage
