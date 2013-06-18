@@ -82,6 +82,7 @@ private
    pragma Inline (Number_Of_Keys);
    pragma Inline (Set_Key);
    pragma Inline (Is_Leaf);
+   pragma Inline (Find_Key_Forward);
 
    use type System.Storage_Elements.Storage_Offset;
 

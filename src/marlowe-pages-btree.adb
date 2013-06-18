@@ -70,7 +70,6 @@ package body Marlowe.Pages.Btree is
       return Slot_Index
    is
       use System.Storage_Elements;
-      Result    : Slot_Index := 1;
       Start     : Storage_Offset := 1;
       Index     : Storage_Offset := 1;
       Key_Count  : constant Slot_Index := Item.Contents.Key_Count;
@@ -79,14 +78,13 @@ package body Marlowe.Pages.Btree is
       Key_Element : Storage_Element;
       Page_Element : Storage_Element;
    begin
-      while Result <= Key_Count loop
+      for Result in 1 .. Key_Count loop
          for I in Key'Range loop
             Key_Element := Key (I);
             Page_Element := Item.Contents.Contents (Index);
             if Key_Element > Page_Element then
                Start := Start + Key_Length;
                Index := Start;
-               Result := Result + 1;
                exit;
             elsif Key_Element < Page_Element then
                return Result;
@@ -98,7 +96,7 @@ package body Marlowe.Pages.Btree is
          end loop;
       end loop;
 
-      return Result;
+      return Key_Count + 1;
 
    end Find_Key_Forward;
 
