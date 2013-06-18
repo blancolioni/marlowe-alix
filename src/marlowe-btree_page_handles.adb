@@ -113,13 +113,16 @@ package body Marlowe.Btree_Page_Handles is
    begin
 
       if Forward then
-         for I in Slot_Index range 1 .. Number_Of_Keys (Item) loop
-            Get_Key (Item, I, Current);
-            if Current >= Key then
-               return I;
-            end if;
-         end loop;
-         return Number_Of_Keys (Item) + 1;
+         return Marlowe.Pages.Btree.Find_Key_Forward
+           (Item.The_Btree_Page, Key);
+
+--           for I in Slot_Index range 1 .. Number_Of_Keys (Item) loop
+--              Get_Key (Item, I, Current);
+--              if Current >= Key then
+--                 return I;
+--              end if;
+--           end loop;
+--           return Number_Of_Keys (Item) + 1;
       else
          for I in reverse Slot_Index range 1 .. Number_Of_Keys (Item) loop
             Get_Key (Item, I, Current);
