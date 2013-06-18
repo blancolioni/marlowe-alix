@@ -43,6 +43,11 @@ package Marlowe.Pages.Btree is
                       Index  : in     Slot_Index;
                       Result :    out System.Storage_Elements.Storage_Array);
 
+   function Find_Key_Forward
+     (Item       : Btree_Page;
+      Key        : System.Storage_Elements.Storage_Array)
+      return Slot_Index;
+
    function Get_Parent (Item : in Btree_Page) return File_And_Page;
 
    procedure Set_Key

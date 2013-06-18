@@ -60,6 +60,48 @@ package body Marlowe.Pages.Btree is
       return Item.Contents.Key_Count;
    end Number_Of_Keys;
 
+   ----------------------
+   -- Find_Key_Forward --
+   ----------------------
+
+   function Find_Key_Forward
+     (Item       : Btree_Page;
+      Key        : System.Storage_Elements.Storage_Array)
+      return Slot_Index
+   is
+      use System.Storage_Elements;
+      Result    : Slot_Index := 1;
+      Start     : Storage_Offset := 1;
+      Index     : Storage_Offset := 1;
+      Key_Count  : constant Slot_Index := Item.Contents.Key_Count;
+      Key_Length : constant Storage_Count :=
+                     Storage_Count (Item.Contents.Key_Length);
+      Key_Element : Storage_Element;
+      Page_Element : Storage_Element;
+   begin
+      while Result <= Key_Count loop
+         for I in Key'Range loop
+            Key_Element := Key (I);
+            Page_Element := Item.Contents.Contents (Index);
+            if Key_Element > Page_Element then
+               Start := Start + Key_Length;
+               Index := Start;
+               Result := Result + 1;
+               exit;
+            elsif Key_Element < Page_Element then
+               return Result;
+            elsif I = Key'Last then
+               return Result;
+            else
+               Index := Index + 1;
+            end if;
+         end loop;
+      end loop;
+
+      return Result;
+
+   end Find_Key_Forward;
+
    -------------
    -- Get_Key --
    -------------
