@@ -73,7 +73,7 @@ package body Marlowe.Data_Stores.Memory is
       use Ada.Strings.Unbounded;
       File : File_Type;
    begin
-      Create (File, Out_File, To_String (Store.Name) & ".mds");
+      Create (File, Out_File, To_String (Store.Name));
       Memory_Data_Store'Write (Stream (File), Store);
       Close (File);
    end Close;
@@ -302,12 +302,12 @@ package body Marlowe.Data_Stores.Memory is
       use Ada.Streams.Stream_IO;
       File : File_Type;
    begin
-      Open (File, In_File, Name & ".mds");
+      Open (File, In_File, Name);
       Memory_Data_Store'Read (Stream (File), Store);
       Close (File);
       if Store.Magic /= Magic then
          raise Constraint_Error with
-           "bad magic number in file " & Name & ".mds";
+           "bad magic number in file " & Name;
       end if;
    end Open;
 
