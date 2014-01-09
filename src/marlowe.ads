@@ -52,7 +52,7 @@ package Marlowe is
    Null_File_And_Page      : constant File_And_Page;
    Null_File_Page_And_Slot : constant File_Page_And_Slot;
 
-   type Btree_Magic is mod 2**64;
+   type Marlowe_Magic_Number is mod 2**64;
 
 private
 

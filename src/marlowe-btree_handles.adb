@@ -31,16 +31,9 @@ package body Marlowe.Btree_Handles is
 
    Max_Root_Pages : constant := 6;
 
-   type Btree_Reference_Record is
-      record
-         Name           : Ada.Strings.Unbounded.Unbounded_String;
-         Index          : Positive;
-         Record_No      : Table_Index;
-         Key_Length     : Storage_Count;
-      end record;
-
    package List_Of_References is
-      new Ada.Containers.Doubly_Linked_Lists (Btree_Reference);
+     new Ada.Containers.Doubly_Linked_Lists (Btree_Reference,
+                                             Marlowe.Data_Stores."=");
 
    type Table_Reference is
       record
@@ -108,7 +101,7 @@ package body Marlowe.Btree_Handles is
       Length       : in    System.Storage_Elements.Storage_Offset)
       return Btree_Reference
    is
-      New_Ref     : constant Btree_Reference := new Btree_Reference_Record;
+      New_Ref     : Btree_Reference;
       Index       : Natural := 0;
       Local_Index : Positive;
       Header      : Btree_Header_Page_Handles.Btree_Header_Page_Handle :=
@@ -118,7 +111,7 @@ package body Marlowe.Btree_Handles is
       declare
          use Marlowe.Btree_Header_Page_Handles;
       begin
-         while Number_Of_Btrees (Header) = Maximum_Btree_Count and
+         while Number_Of_Btrees (Header) = Maximum_Btree_Count and then
            Get_Overflow_Page (Header) /= 0
          loop
             Header := Get_Overflow_Page (Header);
@@ -144,10 +137,6 @@ package body Marlowe.Btree_Handles is
 
       end;
 
-      if Marlowe.Allocation.Debug_Allocation then
-         Marlowe.Allocation.Allocate (New_Ref.all'Size, "btree-reference");
-      end if;
-
       declare
          Root : Marlowe.Btree_Page_Handles.Btree_Page_Handle;
       begin
@@ -165,8 +154,8 @@ package body Marlowe.Btree_Handles is
       end;
 
       New_Ref.Name       := Ada.Strings.Unbounded.To_Unbounded_String (Name);
-      New_Ref.Index      := Index;
-      New_Ref.Record_No  := Record_No;
+      New_Ref.Key_Index  := Index;
+      New_Ref.Table      := Record_No;
       New_Ref.Key_Length := Length;
       List_Of_References.Append (Handle.Refs, New_Ref);
 
@@ -275,7 +264,7 @@ package body Marlowe.Btree_Handles is
    -- Adjust --
    ------------
 
-   procedure Adjust (Mark : in out Btree_Mark) is
+   overriding procedure Adjust (Mark : in out Btree_Mark) is
       use Marlowe.Btree_Page_Handles;
    begin
       if Mark.Slot /= 0 then
@@ -417,11 +406,12 @@ package body Marlowe.Btree_Handles is
          begin
             Get_Key (Page, Current.Slot, Key);
             return Current.Finish_Interval = Unbounded
-              or else (Key = Current.Start_Key and
+              or else (Key = Current.Start_Key and then
                          Current.Start_Interval = Closed)
-              or else (Key = Current.Finish_Key and
+              or else (Key = Current.Finish_Key and then
                          Current.Finish_Interval = Closed)
-              or else (Current.Start_Key < Key and Current.Finish_Key > Key);
+              or else (Current.Start_Key < Key
+                       and then Current.Finish_Key > Key);
          end;
       else
          return True;
@@ -434,7 +424,7 @@ package body Marlowe.Btree_Handles is
 
    procedure Create (Handle : in out Btree_Handle;
                      Name   : in     String;
-                     Magic  : in     Btree_Magic)
+                     Magic  : in     Marlowe_Magic_Number)
    is
       use Marlowe.Btree_Header_Page_Handles;
       use Marlowe.Btree.Data_Definition_Handles;
@@ -679,7 +669,6 @@ package body Marlowe.Btree_Handles is
                               Get_Child (Left_Child, Left_Keys + 1));
                end if;
 
-
                declare
                   Child_Key : Key_Type;
                begin
@@ -872,8 +861,9 @@ package body Marlowe.Btree_Handles is
       Marlowe.File_Handles.Read
         (Handle.File,
          Page_Handles.Page_Handle'Class (Root),
-         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root (Handle.Header,
-                                                           Reference.Index));
+         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root
+           (Handle.Header,
+            Reference.Key_Index));
       Trace ("Locking root " & Image (Root.Get_Location));
 
       Exclusive_Lock (Root);
@@ -996,8 +986,9 @@ package body Marlowe.Btree_Handles is
       Marlowe.File_Handles.Read
         (Handle.File,
          Page_Handles.Page_Handle'Class (Root),
-         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root (Handle.Header,
-                                                           Reference.Index));
+         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root
+           (Handle.Header,
+            Reference.Key_Index));
       Dump_Tree (Root);
 
    end Dump_Tree;
@@ -1031,7 +1022,7 @@ package body Marlowe.Btree_Handles is
    -- Finalize --
    --------------
 
-   procedure Finalize (Mark : in out Btree_Mark) is
+   overriding procedure Finalize (Mark : in out Btree_Mark) is
    begin
       if Mark.Slot /= 0 then
 --           Ada.Text_IO.Put_Line ("Finalizing mark: " &
@@ -1132,7 +1123,7 @@ package body Marlowe.Btree_Handles is
                                  return Table_Index
    is
    begin
-      return Reference.Record_No;
+      return Reference.Table;
    end Get_Key_Table_Index;
 
    ----------------
@@ -1321,9 +1312,9 @@ package body Marlowe.Btree_Handles is
       Marlowe.File_Handles.Read
         (Handle.File,
          Page_Handles.Page_Handle'Class (Root),
-         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root (Handle.Header,
-                                                           Reference.Index));
-
+         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root
+           (Handle.Header,
+            Reference.Key_Index));
       return Root;
    end Get_Root;
 
@@ -1458,8 +1449,9 @@ package body Marlowe.Btree_Handles is
       Marlowe.File_Handles.Read
         (Handle.File,
          Page_Handles.Page_Handle'Class (Root),
-         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root (Handle.Header,
-                                                           Reference.Index));
+         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root
+           (Handle.Header,
+            Reference.Key_Index));
 
       Update_Lock (Root);
 
@@ -1478,7 +1470,7 @@ package body Marlowe.Btree_Handles is
               (New_Root, False, Get_Key_Length (Root));
 
             Btree_Header_Page_Handles.Set_Btree_Root
-              (Handle.Header, Reference.Index, Get_Location (New_Root));
+              (Handle.Header, Reference.Key_Index, Get_Location (New_Root));
 
             Btree_Header_Page_Handles.Unlock (Handle.Header);
 
@@ -1668,6 +1660,24 @@ package body Marlowe.Btree_Handles is
 
    end Insert_Record;
 
+   ----------------
+   -- Last_Index --
+   ----------------
+
+   function Last_Index (Handle   : in Btree_Handle;
+                        Table    : in Table_Index)
+                        return Database_Index
+   is
+      use Marlowe.Btree.Data_Definition_Handles;
+      Table_Data : constant Data_Definition_Handle :=
+                     Get_Data_Definition (Handle, Table);
+      Last       : constant Database_Index :=
+                     Table_Data.Last_Record_Index (Table);
+   begin
+      Table_Data.Shared_Unlock;
+      return Last;
+   end Last_Index;
+
    ----------
    -- Next --
    ----------
@@ -1684,11 +1694,12 @@ package body Marlowe.Btree_Handles is
 
       function Next_OK return Boolean is
       begin
-         return (Current.Scan = Forward and
+         return (Current.Scan = Forward and then
                  Current.Slot < Number_Of_Keys (Current.Page))
-           or (Current.Scan = Backward and Current.Slot > 1)
-           or (not Is_Leaf (Current.Page) and Current.Scan = Forward and
-               Current.Slot <= Number_Of_Keys (Current.Page));
+           or else (Current.Scan = Backward and then Current.Slot > 1)
+           or else (not Is_Leaf (Current.Page)
+                    and then Current.Scan = Forward
+                    and then Current.Slot <= Number_Of_Keys (Current.Page));
       end Next_OK;
 
       Current_Key : System.Storage_Elements.Storage_Array
@@ -1828,7 +1839,7 @@ package body Marlowe.Btree_Handles is
 
    procedure Open (Handle : in out Btree_Handle;
                    Name   : in     String;
-                   Magic  : in     Btree_Magic)
+                   Magic  : in     Marlowe_Magic_Number)
    is
    begin
       Handle := new Btree_Handle_Record;
@@ -1876,7 +1887,6 @@ package body Marlowe.Btree_Handles is
                end;
             end loop;
 
-
             exit when Table_Data.Get_Overflow_Page = 0;
 
             Table_Data := Table_Data.Get_Overflow_Page;
@@ -1900,16 +1910,10 @@ package body Marlowe.Btree_Handles is
                Header := Btree_Header_Page_Handles.Get_Overflow_Page (Header);
             end if;
 
-            Ref := new Btree_Reference_Record;
-
-            if Marlowe.Allocation.Debug_Allocation then
-               Marlowe.Allocation.Allocate (Ref.all'Size, "btree-reference");
-            end if;
-
             Ref.Name :=
               Ada.Strings.Unbounded.To_Unbounded_String
               (Get_Btree_Name (Header, Index));
-            Ref.Index := I;
+            Ref.Key_Index := I;
             Ref.Key_Length :=
               System.Storage_Elements.Storage_Offset
               (Btree_Header_Page_Handles.Get_Btree_Key_Length (Header,
@@ -2191,8 +2195,9 @@ package body Marlowe.Btree_Handles is
       Marlowe.File_Handles.Read
         (Handle.File,
          Page_Handles.Page_Handle'Class (Root),
-         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root (Handle.Header,
-                                                           Reference.Index));
+         Marlowe.Btree_Header_Page_Handles.Get_Btree_Root
+           (Handle.Header,
+            Reference.Key_Index));
 
       Btree_Page_Handles.Shared_Lock (Root);
       Btree_Header_Page_Handles.Shared_Unlock (Handle.Header);

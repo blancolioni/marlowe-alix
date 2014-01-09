@@ -118,7 +118,10 @@ package body Marlowe.Btree_Header_Page_Handles is
    -- Get_Magic --
    ---------------
 
-   function Get_Magic (Item : Btree_Header_Page_Handle) return Btree_Magic is
+   function Get_Magic
+     (Item : Btree_Header_Page_Handle)
+      return Marlowe_Magic_Number
+   is
    begin
       return Marlowe.Pages.Btree_Header.Get_Magic
         (Item.The_Btree_Header_Page);
@@ -276,7 +279,7 @@ package body Marlowe.Btree_Header_Page_Handles is
    ---------------
 
    procedure Set_Magic (Item  : Btree_Header_Page_Handle;
-                        Magic : Btree_Magic)
+                        Magic : Marlowe_Magic_Number)
    is
    begin
       Marlowe.Pages.Btree_Header.Set_Magic (Item.The_Btree_Header_Page,

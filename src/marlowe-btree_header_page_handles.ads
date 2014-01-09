@@ -80,9 +80,11 @@ package Marlowe.Btree_Header_Page_Handles is
                              Loc  : in File_And_Page);
 
    procedure Set_Magic (Item  : Btree_Header_Page_Handle;
-                        Magic : Btree_Magic);
+                        Magic : Marlowe_Magic_Number);
 
-   function Get_Magic (Item : Btree_Header_Page_Handle) return Btree_Magic;
+   function Get_Magic
+     (Item : Btree_Header_Page_Handle)
+      return Marlowe_Magic_Number;
 
 private
 

@@ -69,9 +69,9 @@ package Marlowe.Pages.Btree_Header is
                                 Overflow_Page : File_And_Page);
 
    procedure Set_Magic (Item  : Btree_Header_Page;
-                        Magic : Btree_Magic);
+                        Magic : Marlowe_Magic_Number);
 
-   function Get_Magic (Item : Btree_Header_Page) return Btree_Magic;
+   function Get_Magic (Item : Btree_Header_Page) return Marlowe_Magic_Number;
 
 private
 
@@ -119,7 +119,7 @@ private
 
    type Btree_Header_Page_Contents is
       record
-         Magic        : Btree_Magic           := 0;
+         Magic        : Marlowe_Magic_Number  := 0;
          Overflow     : File_And_Page;
          Tables       : File_And_Page;
          Count        : Page_Index;
@@ -140,4 +140,3 @@ private
    for Btree_Header_Page_Record'Size use Page_Bits;
 
 end Marlowe.Pages.Btree_Header;
-
