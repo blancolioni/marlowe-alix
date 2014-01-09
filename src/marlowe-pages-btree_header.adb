@@ -132,7 +132,7 @@ package body Marlowe.Pages.Btree_Header is
    -- Get_Magic --
    ---------------
 
-   function Get_Magic (Item : Btree_Header_Page) return Btree_Magic is
+   function Get_Magic (Item : Btree_Header_Page) return Marlowe_Magic_Number is
    begin
       return Item.Contents.Magic;
    end Get_Magic;
@@ -257,7 +257,7 @@ package body Marlowe.Pages.Btree_Header is
    ---------------
 
    procedure Set_Magic (Item  : Btree_Header_Page;
-                        Magic : Btree_Magic)
+                        Magic : Marlowe_Magic_Number)
    is
    begin
       Item.Contents.Magic := Magic;
@@ -294,7 +294,7 @@ package body Marlowe.Pages.Btree_Header is
       function TFHP is
          new Ada.Unchecked_Conversion (Page, Btree_Header_Page);
    begin
-      pragma Assert (Get_Page_Type (Item) = Btree_Header_Page_Type or
+      pragma Assert (Get_Page_Type (Item) = Btree_Header_Page_Type or else
                      Get_Page_Type (Item) = No_Page_Type);
       return TFHP (Item);
    end To_Btree_Header_Page;

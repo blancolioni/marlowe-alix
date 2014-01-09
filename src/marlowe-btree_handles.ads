@@ -5,11 +5,13 @@ with System.Storage_Elements;
 --  with Marlowe.Btree_Keys;
 with Marlowe.Btree_Page_Handles;
 
+with Marlowe.Data_Stores;
+
 package Marlowe.Btree_Handles is
 
    type Btree_Handle is private;
 
-   type Btree_Reference is private;
+   subtype Btree_Reference is Marlowe.Data_Stores.Key_Reference;
 
    Bad_Magic_Number : exception;
 
@@ -18,11 +20,11 @@ package Marlowe.Btree_Handles is
 
    procedure Create (Handle : in out Btree_Handle;
                      Name   : in     String;
-                     Magic  : in     Btree_Magic);
+                     Magic  : in     Marlowe_Magic_Number);
 
    procedure Open (Handle : in out Btree_Handle;
                    Name   : in     String;
-                   Magic  : in     Btree_Magic);
+                   Magic  : in     Marlowe_Magic_Number);
 
    procedure Close (Handle : in out Btree_Handle);
 
@@ -52,6 +54,7 @@ package Marlowe.Btree_Handles is
    --  Allocates space in the database for a new record.
    --  Returns the index of the new record, which can
    --  be used by Write_Record to set the data
+   --  The record is guaranteed to be zero-filled.
 
    procedure Get_Record (Handle   : in Btree_Handle;
                          Index    : in Table_Index;
@@ -75,6 +78,10 @@ package Marlowe.Btree_Handles is
                          Table    : in Table_Index;
                          Db_Index : in Database_Index)
                         return Boolean;
+
+   function Last_Index (Handle   : in Btree_Handle;
+                        Table    : in Table_Index)
+                        return Database_Index;
 
    function Deleted_Record (Handle   : in Btree_Handle;
                             Table    : in Table_Index;
@@ -177,10 +184,6 @@ private
 
    type Btree_Handle is access Btree_Handle_Record;
 
-   type Btree_Reference_Record;
-
-   type Btree_Reference is access Btree_Reference_Record;
-
    use System.Storage_Elements;
 
    type Btree_Mark (Key_Length : System.Storage_Elements.Storage_Count) is
@@ -196,8 +199,8 @@ private
          Finish_Interval : Interval_Type;
       end record;
 
-   procedure Adjust (Mark : in out Btree_Mark);
-   procedure Finalize (Mark : in out Btree_Mark);
+   overriding procedure Adjust (Mark : in out Btree_Mark);
+   overriding procedure Finalize (Mark : in out Btree_Mark);
 
    function Get_Root (Handle    : in Btree_Handle;
                       Reference : in Btree_Reference)
