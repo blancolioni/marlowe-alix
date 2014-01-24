@@ -2,6 +2,7 @@ project_name = Marlowe
 source_dir = src
 # source_dir = src/wlib
 source_dir = src/disk-files
+source_dir = src/locking
 depend = { project = WLib
            version = any
          }
