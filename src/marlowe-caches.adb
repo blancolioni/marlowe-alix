@@ -8,9 +8,13 @@ with Marlowe.Allocation;
 --  with Marlowe.Debug_Classes;
 with Marlowe.Locks;
 
+with Marlowe.Mutex;
+
 with Marlowe.Trace;
 
 package body Marlowe.Caches is
+
+   Map_Mutex : Marlowe.Mutex.Mutex_Type;
 
    Show_References : constant Boolean := False;
    pragma Unreferenced (Show_References);
@@ -30,7 +34,6 @@ package body Marlowe.Caches is
          Page_Lock   : Marlowe.Locks.Lock;
          Info_Lock   : Marlowe.Locks.Lock;
          Position    : List_Of_Cached_Pages.Cursor;
-         Next        : Cached_Page_Info;
       end record;
 
    function File_And_Page_Hash (Key : File_And_Page)
@@ -216,51 +219,6 @@ package body Marlowe.Caches is
       end loop;
    end Flush;
 
-   ---------------------
-   -- Get_Cache_Entry --
-   ---------------------
-
---     function Get_Cache_Entry (Cache    : Single_File_Cache;
---                               Index    : Page_Index)
---                              return Cache_Entry
---     is
---        Block     : Cache_Block := Cache.Top;
---        Sub_Index : Page_Index  := Index;
---     begin
---        --  Enter ("Get_Cache_Entry");
---
---        if Index > Cache.Max_Index then
---           Cache_Misses := Cache_Misses + 1;
---           --  Leave ("Get_Cache_Entry");
---           return Null_Cache_Entry;
---        end if;
---
---        while Block /= null and then not Block.Leaf loop
---           declare
---              Divider : constant Page_Index := Block.Divider;
---           begin
---              Block := Block.Sub_Blocks (Sub_Index / Divider);
---              Sub_Index := Sub_Index mod Divider;
---           end;
---        end loop;
---
---        if Block /= null then
---           if Block.Elements (Sub_Index) /= Null_Cache_Entry then
---              Cache_Hits := Cache_Hits + 1;
---           else
---              Cache_Misses := Cache_Misses + 1;
---           end if;
---           --  Leave ("Get_Cache_Entry");
---           return Block.Elements (Sub_Index);
---        else
---  --         WL.Trace.Put_Line ("Cache miss (null block):" & Index'Img);
---           Cache_Misses := Cache_Misses + 1;
---           --  Leave ("Get_Cache_Entry");
---           return (null, null);
---        end if;
---
---     end Get_Cache_Entry;
-
    --------------------------
    -- Get_Cache_Statistics --
    --------------------------
@@ -292,25 +250,21 @@ package body Marlowe.Caches is
       Location : File_And_Page)
       return Cached_Page_Info
    is
+      Result : Cached_Page_Info := null;
    begin
-      if Cache.Hash_Table.Contains (Location) then
-         declare
-            use List_Of_Cached_Pages;
-            E : Cached_Page_Info := Cache.Hash_Table.Element (Location);
-         begin
-            loop
-               if E.Location = Location then
-                  return E;
-               elsif E.Next = null then
-                  return null;
-               else
-                  E := E.Next;
-               end if;
-            end loop;
-         end;
-      else
-         return null;
-      end if;
+
+      Map_Mutex.X_Lock;
+      declare
+         Position : constant Map_Of_Cached_Pages.Cursor :=
+                      Cache.Hash_Table.Find (Location);
+      begin
+         if Map_Of_Cached_Pages.Has_Element (Position) then
+            Result := Map_Of_Cached_Pages.Element (Position);
+         end if;
+      end;
+      Map_Mutex.X_Unlock;
+      return Result;
+
    end Get_Cached_Page;
 
    --------------
@@ -325,7 +279,7 @@ package body Marlowe.Caches is
    begin
       --  Enter ("Get_Page: " & Image (Location));
       if Marlowe.Trace.Tracing then
-         Ada.Text_IO.Put_Line ("Taking shared lock: " & Image (Location));
+         Marlowe.Trace.Trace ("Taking shared lock: " & Image (Location));
       end if;
 
       Marlowe.Locks.Shared_Lock (From_Cache.Cache_Lock.all);
@@ -341,13 +295,13 @@ package body Marlowe.Caches is
          Cache_Misses := Cache_Misses + 1;
 
          if Marlowe.Trace.Tracing then
-            Ada.Text_IO.Put_Line ("Removing shared lock: " & Image (Location));
+            Marlowe.Trace.Trace ("Removing shared lock: " & Image (Location));
          end if;
 
          Marlowe.Locks.Shared_Unlock (From_Cache.Cache_Lock.all);
 
          if Marlowe.Trace.Tracing then
-            Ada.Text_IO.Put_Line
+            Marlowe.Trace.Trace
               ("Taking exclusive lock: " & Image (Location));
          end if;
 
@@ -365,34 +319,20 @@ package body Marlowe.Caches is
             if From_Cache.Size >= From_Cache.Max_Size then
                Info := From_Cache.LRU_List.First_Element;
                --  if Show_References then
-               --     Ada.Text_IO.Put_Line ("Removing from cache: " &
+               --     Marlowe.Trace.Trace ("Removing from cache: " &
                --                           Image (Info.Location) &
                --                           " (reference count =" &
                --                           Info.References'Img);
                --  end if;
 
+               Map_Mutex.X_Lock;
                declare
                   It : Map_Of_Cached_Pages.Cursor :=
                     From_Cache.Hash_Table.Find (Info.Location);
-                  E : Cached_Page_Info :=
-                    Map_Of_Cached_Pages.Element (It);
-                  F : Cached_Page_Info;
                begin
-                  if E = Info then
-                     if E.Next /= null then
-                        From_Cache.Hash_Table.Replace_Element (It, E.Next);
-                     else
-                        From_Cache.Hash_Table.Delete (It);
-                     end if;
-                  else
-                     while E /= Info loop
-                        F := E;
-                        E := E.Next;
-                     end loop;
-
-                     F.Next := E.Next;
-                  end if;
+                  From_Cache.Hash_Table.Delete (It);
                end;
+               Map_Mutex.X_Unlock;
 
                From_Cache.LRU_List.Delete_First;
             else
@@ -415,89 +355,33 @@ package body Marlowe.Caches is
             Info.Location    := Location;
             Info.References  := 1;
             Info.Dirty       := False;
-            Info.Next        := null;
 
             --  From_Cache.LRU_List.Append (Info);
             Info.Position    := List_Of_Cached_Pages.No_Element;
 
-            if From_Cache.Hash_Table.Contains (Location) then
-               declare
-                  E : Cached_Page_Info :=
-                    From_Cache.Hash_Table.Element (Location);
-               begin
-                  while E.Next /= null loop
-                     E := E.Next;
-                  end loop;
-                  E.Next := Info;
-               end;
-            else
-               From_Cache.Hash_Table.Insert (Location, Info);
-            end if;
+            Map_Mutex.X_Lock;
+            From_Cache.Hash_Table.Insert (Location, Info);
+            Map_Mutex.X_Unlock;
 
          end if;
       end if;
 
       if Marlowe.Locks.Exclusive_Locked (From_Cache.Cache_Lock.all) then
          if Marlowe.Trace.Tracing then
-            Ada.Text_IO.Put_Line
+            Marlowe.Trace.Trace
               ("Removing exclusive lock: " & Image (Location));
          end if;
 
          Marlowe.Locks.Unlock (From_Cache.Cache_Lock.all);
       else
          if Marlowe.Trace.Tracing then
-            Ada.Text_IO.Put_Line ("Removing shared lock: " & Image (Location));
+            Marlowe.Trace.Trace ("Removing shared lock: " & Image (Location));
          end if;
-
          Marlowe.Locks.Shared_Unlock (From_Cache.Cache_Lock.all);
       end if;
 
       --  Leave ("Get_Page: " & Image (Location));
    end Get_Page;
-
-   ------------------------
-   -- Insert_Cache_Entry --
-   ------------------------
-
---     procedure Insert_Cache_Entry (Cache     : File_Cache;
---                                   New_Entry : Cache_Entry)
---     is
---        Block     : Cache_Block;
---        Location  : constant File_And_Page := New_Entry.Info.Location;
---        Sub_Cache  : Single_File_Cache renames
---          Cache.Cache (Get_File (Location));
---        Sub_Index : Page_Index    := Get_Page (Location);
---     begin
---        --  Enter ("Insert_Cache_Entry");
---        Ensure_Size (Cache, Get_File (Location), Sub_Index);
---        Block := Sub_Cache.Top;
---        while not Block.Leaf loop
---           declare
---              Divider : constant Page_Index := Block.Divider;
---           begin
---              if Block.Sub_Blocks (Sub_Index / Divider) = null then
---                 if Divider = Cache_Block_Size then
---                    Block.Sub_Blocks (Sub_Index / Divider) :=
---                      Allocate_Block (Cache, True);
---                 else
---                    Block.Sub_Blocks (Sub_Index / Divider) :=
---                      Allocate_Block (Cache, False);
---                    Block.Sub_Blocks (Sub_Index / Divider).Divider :=
---                      Divider / Cache_Block_Size;
---                 end if;
---                 Block.Count := Block.Count + 1;
---              end if;
---              Block := Block.Sub_Blocks (Sub_Index / Divider);
---              Sub_Index := Sub_Index mod Divider;
---           end;
---        end loop;
---
---        pragma Assert (Block.Elements (Sub_Index) = Null_Cache_Entry);
---        Block.Elements (Sub_Index) := New_Entry;
---        Block.Count := Block.Count + 1;
---        Cache.Size  := Cache.Size + 1;
---        --  Leave ("Insert_Cache_Entry");
---     end Insert_Cache_Entry;
 
    -----------
    -- Leave --
@@ -531,7 +415,7 @@ package body Marlowe.Caches is
    begin
       --  Enter ("Get_Page: " & Image (Location));
       if Marlowe.Trace.Tracing then
-         Ada.Text_IO.Put_Line ("New_Page: taking exclusive lock: " &
+         Marlowe.Trace.Trace ("New_Page: taking exclusive lock: " &
                                Image (Location));
       end if;
 
@@ -550,19 +434,10 @@ package body Marlowe.Caches is
             Ada.Text_IO.Flush;
          end if;
 
-         if From_Cache.Hash_Table.Contains (Location) then
-            declare
-               E : Cached_Page_Info :=
-                     From_Cache.Hash_Table.Element (Location);
-            begin
-               while E.Next /= null loop
-                  E := E.Next;
-               end loop;
-               E.Next := Info;
-            end;
-         else
-            From_Cache.Hash_Table.Insert (Location, Info);
-         end if;
+         Map_Mutex.X_Lock;
+         From_Cache.Hash_Table.Insert (Location, Info);
+         Map_Mutex.X_Unlock;
+
       end if;
 
       Result := Info.Cached_Page'Access;
@@ -571,11 +446,10 @@ package body Marlowe.Caches is
       Info.Location    := Location;
       Info.References  := 1;
       Info.Dirty       := True;
-      Info.Next        := null;
       Info.Position    := List_Of_Cached_Pages.No_Element;
 
       if Marlowe.Trace.Tracing then
-         Ada.Text_IO.Put_Line ("New_Page: Removing exclusive lock: " &
+         Marlowe.Trace.Trace ("New_Page: Removing exclusive lock: " &
                                Image (Location));
       end if;
 
@@ -592,7 +466,7 @@ package body Marlowe.Caches is
 
       --  if Show_References then
       if Marlowe.Trace.Tracing then
-         Ada.Text_IO.Put_Line ("Reference: " & Image (Info.Location) &
+         Marlowe.Trace.Trace ("Reference: " & Image (Info.Location) &
                                " refcount =" &
                                Info.References'Img);
       end if;
@@ -609,7 +483,8 @@ package body Marlowe.Caches is
          Marlowe.Locks.Exclusive_Lock (Info.From_Cache.LRU_Lock);
 
          if not List_Of_Cached_Pages.Has_Element (Info.Position) then
-            Ada.Text_IO.Put_Line ("unexpected empty element");
+            Ada.Text_IO.Put_Line
+              ("unexpected empty element");
          end if;
 
          Info.From_Cache.LRU_List.Delete (Info.Position);
@@ -718,10 +593,9 @@ package body Marlowe.Caches is
 
 --      if Show_References then
       if Marlowe.Trace.Tracing then
-         Ada.Text_IO.Put_Line ("Unreference: " & Image (Info.Location) &
+         Marlowe.Trace.Trace ("Unreference: " & Image (Info.Location) &
                                " refcount =" &
                                Info.References'Img);
-         Ada.Text_IO.Flush;
       end if;
 
   --    end if;
@@ -745,7 +619,7 @@ package body Marlowe.Caches is
 
          --  if Show_References then
          if Marlowe.Trace.Tracing then
-            Ada.Text_IO.Put_Line ("Returning to pool: " &
+            Marlowe.Trace.Trace ("Returning to pool: " &
                                   Image (Info.Location));
          end if;
 
@@ -755,7 +629,7 @@ package body Marlowe.Caches is
       Marlowe.Locks.Shared_Unlock (Info.From_Cache.Cache_Lock.all);
       Marlowe.Locks.Unlock (Info.Info_Lock);
       if Marlowe.Trace.Tracing then
-         Ada.Text_IO.Put_Line ("exit unreference " & Image (Info.Location));
+         Marlowe.Trace.Trace ("exit unreference " & Image (Info.Location));
       end if;
 
    end Unreference;
