@@ -600,8 +600,8 @@ package body Marlowe.Caches is
 
   --    end if;
 
-      Marlowe.Locks.Exclusive_Lock (Info.Info_Lock);
       Marlowe.Locks.Shared_Lock (Info.From_Cache.Cache_Lock.all);
+      Marlowe.Locks.Exclusive_Lock (Info.Info_Lock);
 
       if Info.Dirty then
          Marlowe.Files.Write (Info.From_Cache.File,
@@ -626,8 +626,9 @@ package body Marlowe.Caches is
          --  end if;
       end if;
 
-      Marlowe.Locks.Shared_Unlock (Info.From_Cache.Cache_Lock.all);
       Marlowe.Locks.Unlock (Info.Info_Lock);
+      Marlowe.Locks.Shared_Unlock (Info.From_Cache.Cache_Lock.all);
+
       if Marlowe.Trace.Tracing then
          Marlowe.Trace.Trace ("exit unreference " & Image (Info.Location));
       end if;
