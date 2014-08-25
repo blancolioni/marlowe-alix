@@ -28,6 +28,7 @@ package body Marlowe.Caches is
       procedure Reference (Info : Cached_Page_Info);
       procedure Unreference (Info : Cached_Page_Info);
       function Count return Natural;
+      pragma Unreferenced (Count);
    private
       Reference_Count : Natural := 0;
       Position        : List_Of_Cached_Pages.Cursor :=
@@ -324,18 +325,15 @@ package body Marlowe.Caches is
          if Info /= null then
             Result := Info.Cached_Page'Access;
             Got_From_Cache := True;
-            Ada.Text_IO.Put_Line ("Found cached page (second try); "
-                                  & "reference count ="
-                                  & Natural'Image (Info.References.Count));
          else
             if From_Cache.Size >= From_Cache.Max_Size then
                Info := From_Cache.LRU_List.First_Element;
                --  if Show_References then
-                  Ada.Text_IO.Put_Line ("Removing from cache: " &
-                                          Image (Info.Location) &
-                                          " (reference count =" &
-                                          Natural'Image
-                                          (Info.References.Count));
+--                    Ada.Text_IO.Put_Line ("Removing from cache: " &
+--                                            Image (Info.Location) &
+--                                            " (reference count =" &
+--                                            Natural'Image
+--                                            (Info.References.Count));
                --  end if;
 
                Map_Mutex.X_Lock;
@@ -514,15 +512,6 @@ package body Marlowe.Caches is
             end if;
             Marlowe.Locks.Unlock (Info.From_Cache.LRU_Lock);
          end if;
-      exception
-         when others =>
-            declare
-               B : Boolean;
-            begin
-               B := List_Of_Cached_Pages.Has_Element (Position);
-               Ada.Text_IO.Put_Line (B'Img);
-               raise;
-            end;
       end Reference;
 
       -----------------
