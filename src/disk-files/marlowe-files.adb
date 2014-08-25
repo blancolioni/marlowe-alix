@@ -2,29 +2,42 @@ with Ada.Direct_IO;
 with Ada.Unchecked_Deallocation;
 
 with Marlowe.Allocation;
-with Marlowe.Locks;
 
 package body Marlowe.Files is
 
    package File_Of_Pages is
       new Ada.Direct_IO (Marlowe.Pages.Page_Record);
 
-   Max_Pages_In_File : constant := 2**24;
+   Max_Pages_In_File : constant := 2 ** 24;
 
-   type Array_Of_Files is
-     array (File_Index range 1 .. Max_Files) of File_Of_Pages.File_Type;
+   protected type Marlowe_File is
+      procedure Read (From : in     Page_Index;
+                      Item :    out Pages.Page_Record);
 
-   type Array_Of_File_Flags is
-     array (File_Index range 1 .. Max_Files) of Boolean;
+      procedure Write (Item : in Pages.Page_Record);
 
-   type Array_Of_File_Locks is
-     array (File_Index range 1 .. Max_Files) of Marlowe.Locks.Lock;
+      function New_Page return Page_Index;
+
+      function Max_Page_Index return Page_Index;
+
+      procedure Clear (Page : Page_Index);
+      procedure Open (Name : String);
+      procedure Create (Name : String);
+      procedure Close;
+
+      function Is_Open return Boolean;
+
+   private
+      File : File_Of_Pages.File_Type;
+      Open_Flag : Boolean := False;
+   end Marlowe_File;
+
+   type Array_Of_Marlowe_Files is
+     array (File_Index range 1 .. Max_Files) of Marlowe_File;
 
    type File_Type_Record is
       record
-         File       : Array_Of_Files;
-         Open       : Array_Of_File_Flags := (others => False);
-         Lock       : Array_Of_File_Locks;
+         Files      : Array_Of_Marlowe_Files;
       end record;
 
    -----------
@@ -34,28 +47,10 @@ package body Marlowe.Files is
    procedure Clear (File     : in File_Type;
                     Location : in File_And_Page)
    is
-      use File_Of_Pages;
-      Data : Marlowe.Pages.Page_Record;
-      pragma Warnings (Off, Data);
       File_Id : constant File_Index := Get_File (Location);
       Page_Id : constant Page_Index := Get_Page (Location);
    begin
-      Marlowe.Locks.Exclusive_Lock (File.Lock (File_Id));
-
-      Set_Index (File.File (Get_File (Location)),
-                 Positive_Count (Get_Page (Location)));
-      Write (File.File (Get_File (Location)), Data);
-
-      pragma Assert (Size (File.File (File_Id)) >= Positive_Count (Page_Id));
-
-      --  We don't actually clear it, for no particular reason.
-      --  This function just ensures that the given location
-      --  exists, by extending the file if necessary.
-      --  Clearing should not be necessary, since it will be
-      --  overwritten with new data soon enough.
-
-      Marlowe.Locks.Unlock (File.Lock (File_Id));
-
+      File.Files (File_Id).Clear (Page_Id);
    end Clear;
 
    -----------
@@ -67,9 +62,9 @@ package body Marlowe.Files is
       procedure Free is
          new Ada.Unchecked_Deallocation (File_Type_Record, File_Type);
    begin
-      for I in File.File'Range loop
-         if File.Open (I) then
-            Close (File.File (I));
+      for I in File.Files'Range loop
+         if File.Files (I).Is_Open then
+            File.Files (I).Close;
          end if;
       end loop;
       Free (File);
@@ -79,9 +74,9 @@ package body Marlowe.Files is
    -- Create --
    ------------
 
-   procedure Create (File : in out File_Type;
+   procedure Create (File  : in out File_Type;
                      Index : in     File_Index;
-                     Name : in     String)
+                     Name  : in     String)
    is
       use File_Of_Pages;
    begin
@@ -98,12 +93,7 @@ package body Marlowe.Files is
          end if;
       end if;
 
-      Marlowe.Locks.Exclusive_Lock (File.Lock (Index));
-
-      Create (File.File (Index), Inout_File, Name);
-      File.Open (Index) := True;
-
-      Marlowe.Locks.Unlock (File.Lock (Index));
+      File.Files (Index).Create (Name);
 
    end Create;
 
@@ -118,8 +108,162 @@ package body Marlowe.Files is
    begin
       pragma Assert (Index > 0);
       pragma Assert (Index < Max_Files);
-      return File.Open (Index);
+      return File.Files (Index).Is_Open;
    end Is_Open;
+
+   ------------------
+   -- Marlowe_File --
+   ------------------
+
+   protected body Marlowe_File is
+
+      -----------
+      -- Clear --
+      -----------
+
+      procedure Clear (Page : Page_Index) is
+         use File_Of_Pages;
+         Data    : Marlowe.Pages.Page_Record;
+         pragma Warnings (Off, Data);
+         Page_Id : constant Positive_Count := Positive_Count (Page);
+      begin
+
+         Set_Index (File, Page_Id);
+         Write (File, Data);
+
+         pragma Assert (Size (File) >= Page_Id);
+
+         --  We don't actually clear it, for no particular reason.
+         --  This function just ensures that the given location
+         --  exists, by extending the file if necessary.
+         --  Clearing should not be necessary, since it will be
+         --  overwritten with new data soon enough.
+      end Clear;
+
+      -----------
+      -- Close --
+      -----------
+
+      procedure Close is
+      begin
+         File_Of_Pages.Close (File);
+      end Close;
+
+      ------------
+      -- Create --
+      ------------
+
+      procedure Create (Name : String) is
+         use File_Of_Pages;
+      begin
+         if not Open_Flag then
+            Create (File, Inout_File, Name);
+            Open_Flag := True;
+         end if;
+      end Create;
+
+      -------------
+      -- Is_Open --
+      -------------
+
+      function Is_Open return Boolean is
+      begin
+         return Open_Flag;
+      end Is_Open;
+
+      --------------------
+      -- Max_Page_Index --
+      --------------------
+
+      function Max_Page_Index return Page_Index is
+      begin
+         if Open_Flag then
+            return Page_Index (File_Of_Pages.Size (File));
+         else
+            return 0;
+         end if;
+      end Max_Page_Index;
+
+      --------------
+      -- New_Page --
+      --------------
+
+      function New_Page return Page_Index
+      is
+         use File_Of_Pages;
+      begin
+         pragma Assert (Open_Flag);
+
+         if Page_Index (Size (File)) >= Max_Pages_In_File then
+            return 0;
+         else
+            declare
+               Current_Size : constant Count := Size (File);
+               Data         : Marlowe.Pages.Page_Record;
+               pragma Warnings (Off, Data);
+               New_Size     : Count;
+            begin
+               Set_Index (File, Current_Size + 1);
+               Write (File, Data);
+               New_Size := Size (File);
+               return Page_Index (New_Size);
+            end;
+         end if;
+      end New_Page;
+
+      ----------
+      -- Open --
+      ----------
+
+      procedure Open (Name : String) is
+         use File_Of_Pages;
+      begin
+         if not Open_Flag then
+            Open (File, Inout_File, Name);
+            Open_Flag := True;
+         end if;
+      end Open;
+
+      ----------
+      -- Read --
+      ----------
+
+      procedure Read (From : in     Page_Index;
+                      Item :    out Pages.Page_Record)
+      is
+      begin
+         pragma Assert (From <=
+                          Page_Index (File_Of_Pages.Size (File)));
+         File_Of_Pages.Read (File, Item, File_Of_Pages.Positive_Count (From));
+      end Read;
+
+      -----------
+      -- Write --
+      -----------
+
+      procedure Write (Item : in Pages.Page_Record) is
+         Location       : constant File_And_Page :=
+                            Marlowe.Pages.Get_File_And_Page (Item);
+         Last_File_Page : constant Page_Index :=
+                            Page_Index (File_Of_Pages.Size (File));
+      begin
+         pragma Assert (Get_Page (Location) <= Last_File_Page + 1);
+
+         File_Of_Pages.Write (File,
+                              Item,
+                              File_Of_Pages.Positive_Count
+                                (Get_Page (Location)));
+         declare
+            New_Last_Page : constant Page_Index :=
+                              Page_Index (File_Of_Pages.Size (File));
+         begin
+            pragma Assert (New_Last_Page = Last_File_Page or else
+                             (New_Last_Page = Last_File_Page + 1
+                 and then Get_Page (Location) = New_Last_Page));
+         end;
+      end Write;
+
+   end Marlowe_File;
 
    --------------------
    -- Max_Page_Index --
@@ -129,12 +273,8 @@ package body Marlowe.Files is
                             Index : File_Index)
                            return Page_Index
    is
-      Result : Page_Index;
    begin
-      Marlowe.Locks.Shared_Lock (File.Lock (Index));
-      Result := Page_Index (File_Of_Pages.Size (File.File (Index)));
-      Marlowe.Locks.Shared_Unlock (File.Lock (Index));
-      return Result;
+      return File.Files (Index).Max_Page_Index;
    end Max_Page_Index;
 
    --------------
@@ -149,27 +289,8 @@ package body Marlowe.Files is
    begin
       pragma Assert (Index > 0);
       pragma Assert (Index < Max_Files);
-      pragma Assert (File.Open (Index));
 
-      Marlowe.Locks.Exclusive_Lock (File.Lock (Index));
-
-      if Page_Index (Size (File.File (Index))) >= Max_Pages_In_File then
-         Marlowe.Locks.Unlock (File.Lock (Index));
-         return 0;
-      else
-         declare
-            Current_Size : constant Count := Size (File.File (Index));
-            Data         : Marlowe.Pages.Page_Record;
-            pragma Warnings (Off, Data);
-            New_Size     : Count;
-         begin
-            Set_Index (File.File (Index), Current_Size + 1);
-            Write (File.File (Index), Data);
-            New_Size := Size (File.File (Index));
-            Marlowe.Locks.Unlock (File.Lock (Index));
-            return Page_Index (New_Size);
-         end;
-      end if;
+      return File.Files (Index).New_Page;
    end New_Page;
 
    ----------
@@ -195,8 +316,7 @@ package body Marlowe.Files is
          end if;
       end if;
 
-      Open (File.File (Index), Inout_File, Name);
-      File.Open (Index) := True;
+      File.Files (Index).Open (Name);
 
    end Open;
 
@@ -209,22 +329,15 @@ package body Marlowe.Files is
                    Item :    out Pages.Page_Record)
    is
    begin
-      Marlowe.Locks.Exclusive_Lock (File.Lock (Get_File (From)));
       pragma Assert (Get_File (From) > 0);
       pragma Assert (Get_File (From) <= Max_Files);
       --  pragma Assert (File.Open (Get_File (From)));
       pragma Assert (Get_Page (From) <= Max_Pages_In_File);
       pragma Assert (Get_Page (From) > 0);
       pragma Assert (File /= null);
-      pragma Assert (Get_Page (From) <=
-                     Page_Index (File_Of_Pages.Size
-                                 (File.File (Get_File (From)))));
 
-      File_Of_Pages.Read (File.File (Get_File (From)),
-                          Item,
-                          File_Of_Pages.Positive_Count (Get_Page (From)));
+      File.Files (Get_File (From)).Read (Get_Page (From), Item);
       pragma Assert (Pages.Validate (Item));
-      Marlowe.Locks.Unlock (File.Lock (Get_File (From)));
    end Read;
 
    -----------
@@ -237,39 +350,13 @@ package body Marlowe.Files is
       Location       : constant File_And_Page :=
                          Marlowe.Pages.Get_File_And_Page (Item);
    begin
-      Marlowe.Locks.Exclusive_Lock (File.Lock (Get_File (Location)));
-      declare
-         Last_File_Page : constant Page_Index :=
-                            Page_Index (File_Of_Pages.Size
-                                        (File.File (Get_File (Location))));
-      begin
-         pragma Assert (Get_File (Location) > 0);
-         pragma Assert (Get_File (Location) <= Max_Files);
-         pragma Assert (File.Open (Get_File (Location)));
-         pragma Assert (Get_Page (Location) <= Max_Pages_In_File);
-         pragma Assert (Get_Page (Location) > 0);
-         pragma Assert (File /= null);
-         pragma Assert (Get_Page (Location) <= Last_File_Page + 1);
+      pragma Assert (Get_File (Location) > 0);
+      pragma Assert (Get_File (Location) <= Max_Files);
+      pragma Assert (Get_Page (Location) <= Max_Pages_In_File);
+      pragma Assert (Get_Page (Location) > 0);
+      pragma Assert (File /= null);
 
-         File_Of_Pages.Write (File.File (Get_File (Location)),
-                              Item,
-                              File_Of_Pages.Positive_Count
-                                (Get_Page (Location)));
-         declare
-            New_Last_Page : constant Page_Index :=
-                              Page_Index (File_Of_Pages.Size
-                                          (File.File (Get_File (Location))));
-         begin
-            null;
-            pragma Assert (New_Last_Page = Last_File_Page or else
-                             (New_Last_Page = Last_File_Page + 1
-                 and then Get_Page (Location) = New_Last_Page));
-         end;
-      end;
-
-      Marlowe.Locks.Unlock (File.Lock (Get_File (Location)));
+      File.Files (Get_File (Location)).Write (Item);
    end Write;
 
 end Marlowe.Files;
-
-
