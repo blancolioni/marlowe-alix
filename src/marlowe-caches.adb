@@ -24,16 +24,24 @@ package body Marlowe.Caches is
    package List_Of_Cached_Pages is
      new Ada.Containers.Doubly_Linked_Lists (Cached_Page_Info);
 
+   protected type Reference_Counter is
+      procedure Reference (Info : Cached_Page_Info);
+      procedure Unreference (Info : Cached_Page_Info);
+      function Count return Natural;
+   private
+      Reference_Count : Natural := 0;
+      Position        : List_Of_Cached_Pages.Cursor :=
+                          List_Of_Cached_Pages.No_Element;
+   end Reference_Counter;
+
    type Cached_Page_Info_Record is limited
       record
          Cached_Page : aliased Marlowe.Pages.Page_Record;
          Dirty       : Boolean            := False;
          Location    : File_And_Page;
-         References  : Natural            := 1;
+         References  : Reference_Counter;
          From_Cache  : File_Cache;
          Page_Lock   : Marlowe.Locks.Lock;
-         Info_Lock   : Marlowe.Locks.Lock;
-         Position    : List_Of_Cached_Pages.Cursor;
       end record;
 
    function File_And_Page_Hash (Key : File_And_Page)
@@ -276,6 +284,7 @@ package body Marlowe.Caches is
                        Result     :    out Marlowe.Pages.Page;
                        Info       :    out Cached_Page_Info)
    is
+      Got_From_Cache : Boolean := False;
    begin
       --  Enter ("Get_Page: " & Image (Location));
       if Marlowe.Trace.Tracing then
@@ -289,7 +298,7 @@ package body Marlowe.Caches is
       if Info /= null then
          Result := Info.Cached_Page'Access;
          Cache_Hits := Cache_Hits + 1;
-         Reference (Info);
+         Got_From_Cache := True;
       else
 
          Cache_Misses := Cache_Misses + 1;
@@ -314,15 +323,19 @@ package body Marlowe.Caches is
 
          if Info /= null then
             Result := Info.Cached_Page'Access;
-            Reference (Info);
+            Got_From_Cache := True;
+            Ada.Text_IO.Put_Line ("Found cached page (second try); "
+                                  & "reference count ="
+                                  & Natural'Image (Info.References.Count));
          else
             if From_Cache.Size >= From_Cache.Max_Size then
                Info := From_Cache.LRU_List.First_Element;
                --  if Show_References then
-               --     Marlowe.Trace.Trace ("Removing from cache: " &
-               --                           Image (Info.Location) &
-               --                           " (reference count =" &
-               --                           Info.References'Img);
+                  Ada.Text_IO.Put_Line ("Removing from cache: " &
+                                          Image (Info.Location) &
+                                          " (reference count =" &
+                                          Natural'Image
+                                          (Info.References.Count));
                --  end if;
 
                Map_Mutex.X_Lock;
@@ -353,11 +366,9 @@ package body Marlowe.Caches is
 
             Info.From_Cache  := From_Cache;
             Info.Location    := Location;
-            Info.References  := 1;
             Info.Dirty       := False;
 
             --  From_Cache.LRU_List.Append (Info);
-            Info.Position    := List_Of_Cached_Pages.No_Element;
 
             Map_Mutex.X_Lock;
             From_Cache.Hash_Table.Insert (Location, Info);
@@ -365,6 +376,12 @@ package body Marlowe.Caches is
 
          end if;
       end if;
+
+      if Marlowe.Trace.Tracing then
+         Marlowe.Trace.Trace ("got from cache:" & Got_From_Cache'Img);
+      end if;
+
+      Reference (Info);
 
       if Marlowe.Locks.Exclusive_Locked (From_Cache.Cache_Lock.all) then
          if Marlowe.Trace.Tracing then
@@ -422,9 +439,7 @@ package body Marlowe.Caches is
       Marlowe.Locks.Exclusive_Lock (From_Cache.Cache_Lock.all);
 
       Info := Get_Cached_Page (From_Cache, Location);
-      if Info /= null then
-         Info.From_Cache.LRU_List.Delete (Info.Position);
-      else
+      if Info = null then
          Info := new Cached_Page_Info_Record;
          From_Cache.Size := From_Cache.Size + 1;
          if From_Cache.Size >= From_Cache.Max_Size then
@@ -444,9 +459,8 @@ package body Marlowe.Caches is
 
       Info.From_Cache  := From_Cache;
       Info.Location    := Location;
-      Info.References  := 1;
       Info.Dirty       := True;
-      Info.Position    := List_Of_Cached_Pages.No_Element;
+      Info.References.Reference (Info);
 
       if Marlowe.Trace.Tracing then
          Marlowe.Trace.Trace ("New_Page: Removing exclusive lock: " &
@@ -463,39 +477,75 @@ package body Marlowe.Caches is
 
    procedure Reference (Info : Cached_Page_Info) is
    begin
-
-      --  if Show_References then
-      if Marlowe.Trace.Tracing then
-         Marlowe.Trace.Trace ("Reference: " & Image (Info.Location) &
-                               " refcount =" &
-                               Info.References'Img);
-      end if;
-
-      --  end if;
-
-      Marlowe.Locks.Exclusive_Lock (Info.Info_Lock);
-
-      --  Enter ("Reference: " & Image (Info.Location));
-      Info.References := Info.References + 1;
-
-      if Info.References = 1 then
-
-         Marlowe.Locks.Exclusive_Lock (Info.From_Cache.LRU_Lock);
-
-         if not List_Of_Cached_Pages.Has_Element (Info.Position) then
-            Ada.Text_IO.Put_Line
-              ("unexpected empty element");
-         end if;
-
-         Info.From_Cache.LRU_List.Delete (Info.Position);
-         Marlowe.Locks.Unlock (Info.From_Cache.LRU_Lock);
-
-         Info.Position := List_Of_Cached_Pages.No_Element;
-      end if;
-
-      --  Leave ("Reference: " & Image (Info.Location));
-      Marlowe.Locks.Unlock (Info.Info_Lock);
+      Info.References.Reference (Info);
    end Reference;
+
+   -----------------------
+   -- Reference_Counter --
+   -----------------------
+
+   protected body Reference_Counter is
+
+      -----------
+      -- Count --
+      -----------
+
+      function Count return Natural is
+      begin
+         return Reference_Count;
+      end Count;
+
+      ---------------
+      -- Reference --
+      ---------------
+
+      procedure Reference (Info : Cached_Page_Info) is
+      begin
+         Reference_Count := Reference_Count + 1;
+--           Ada.Text_IO.Put_Line ("ref: " & Image (Info.Location)
+--                                 & "; count ="
+--                                 & Natural'Image (Reference_Count));
+
+         if Reference_Count = 1 then
+            Marlowe.Locks.Exclusive_Lock (Info.From_Cache.LRU_Lock);
+            if List_Of_Cached_Pages.Has_Element (Position) then
+               Info.From_Cache.LRU_List.Delete (Position);
+               Position := List_Of_Cached_Pages.No_Element;
+            end if;
+            Marlowe.Locks.Unlock (Info.From_Cache.LRU_Lock);
+         end if;
+      exception
+         when others =>
+            declare
+               B : Boolean;
+            begin
+               B := List_Of_Cached_Pages.Has_Element (Position);
+               Ada.Text_IO.Put_Line (B'Img);
+               raise;
+            end;
+      end Reference;
+
+      -----------------
+      -- Unreference --
+      -----------------
+
+      procedure Unreference (Info : Cached_Page_Info) is
+      begin
+--           Ada.Text_IO.Put_Line ("unref: " & Image (Info.Location)
+--                                 & "; count ="
+--                                 & Natural'Image (Reference_Count));
+
+         Reference_Count := Reference_Count - 1;
+
+         if Reference_Count = 0 then
+            Marlowe.Locks.Exclusive_Lock (Info.From_Cache.LRU_Lock);
+            Info.From_Cache.LRU_List.Append (Info);
+            Position := Info.From_Cache.LRU_List.Last;
+            Marlowe.Locks.Unlock (Info.From_Cache.LRU_Lock);
+         end if;
+      end Unreference;
+
+   end Reference_Counter;
 
    ------------------
    -- Set_Accessed --
@@ -590,18 +640,7 @@ package body Marlowe.Caches is
 
    procedure Unreference (Info : Cached_Page_Info) is
    begin
-
---      if Show_References then
-      if Marlowe.Trace.Tracing then
-         Marlowe.Trace.Trace ("Unreference: " & Image (Info.Location) &
-                               " refcount =" &
-                               Info.References'Img);
-      end if;
-
-  --    end if;
-
       Marlowe.Locks.Shared_Lock (Info.From_Cache.Cache_Lock.all);
-      Marlowe.Locks.Exclusive_Lock (Info.Info_Lock);
 
       if Info.Dirty then
          Marlowe.Files.Write (Info.From_Cache.File,
@@ -609,24 +648,8 @@ package body Marlowe.Caches is
          Info.Dirty := False;
       end if;
 
-      Info.References := Info.References - 1;
+      Info.References.Unreference (Info);
 
-      if Info.References = 0 then
-         Marlowe.Locks.Exclusive_Lock (Info.From_Cache.LRU_Lock);
-         Info.From_Cache.LRU_List.Append (Info);
-         Info.Position := Info.From_Cache.LRU_List.Last;
-         Marlowe.Locks.Unlock (Info.From_Cache.LRU_Lock);
-
-         --  if Show_References then
-         if Marlowe.Trace.Tracing then
-            Marlowe.Trace.Trace ("Returning to pool: " &
-                                  Image (Info.Location));
-         end if;
-
-         --  end if;
-      end if;
-
-      Marlowe.Locks.Unlock (Info.Info_Lock);
       Marlowe.Locks.Shared_Unlock (Info.From_Cache.Cache_Lock.all);
 
       if Marlowe.Trace.Tracing then
