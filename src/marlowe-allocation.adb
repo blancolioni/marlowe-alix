@@ -2,7 +2,6 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Strings.Hash;
 with Ada.Text_IO;
 
-with Marlowe.Locks;
 with Marlowe.Debug;
 with Marlowe.Debug_Classes;
 
@@ -30,9 +29,92 @@ package body Marlowe.Allocation is
        (Message_Key,
         Allocation_Entry, Ada.Strings.Hash, "=");
 
-   Allocation_Table : Table_Of_Allocations.Map;
+   protected Allocation is
+      procedure Allocate (Size    : Natural;
+                          Message : String);
+      procedure Deallocate (Size    : Natural;
+                            Message : String);
+      procedure Report;
+   private
+      Allocation_Table : Table_Of_Allocations.Map;
+   end Allocation;
 
-   Allocation_Lock  : Marlowe.Locks.Lock;
+   protected body Allocation is
+
+      --------------
+      -- Allocate --
+      --------------
+
+      procedure Allocate (Size    : Natural;
+                          Message : String)
+      is
+         Bytes : constant Natural := (Size - 1) / 8 + 1;
+      begin
+         Allocated := Allocated + Bytes;
+         declare
+            use Table_Of_Allocations;
+            Pos   : constant Cursor :=
+                      Allocation_Table.Find (To_Key (Message));
+         begin
+            if Has_Element (Pos) then
+               declare
+                  Item : constant Allocation_Entry := Element (Pos);
+               begin
+                  Item.Quantity := Item.Quantity + 1;
+                  Item.Size     := Item.Size + Bytes;
+               end;
+            else
+               Allocation_Table.Insert
+                 (Key      => To_Key (Message),
+                  New_Item => new Allocation_Entry_Record'(1, Bytes));
+            end if;
+         end;
+      end Allocate;
+
+      ----------------
+      -- Deallocate --
+      ----------------
+
+      procedure Deallocate (Size    : Natural;
+                            Message : String)
+      is
+         Bytes : constant Natural := (Size - 1) / 8 + 1;
+      begin
+         Allocated := Allocated - Bytes;
+         declare
+            use Table_Of_Allocations;
+            Pos  : constant Cursor :=
+                     Allocation_Table.Find (To_Key (Message));
+            Item : constant Allocation_Entry :=
+                     Element (Pos);
+         begin
+            Item.Quantity := Item.Quantity - 1;
+            Item.Size := Item.Size - Bytes;
+         end;
+      end Deallocate;
+
+      ------------
+      -- Report --
+      ------------
+
+      procedure Report is
+         use Table_Of_Allocations;
+         Pos : Cursor := Allocation_Table.First;
+      begin
+         while Has_Element (Pos) loop
+            declare
+               Name : constant String := Key (Pos);
+               Item : constant Allocation_Entry := Element (Pos);
+            begin
+               Ada.Text_IO.Put_Line (Name & ":" &
+                                       Natural'Image (Item.Quantity) &
+                                       Natural'Image (Item.Size));
+            end;
+            Next (Pos);
+         end loop;
+      end Report;
+
+   end Allocation;
 
    --------------
    -- Allocate --
@@ -41,30 +123,8 @@ package body Marlowe.Allocation is
    procedure Allocate (Size    : Natural;
                        Message : String)
    is
-      Bytes : constant Natural := (Size - 1) / 8 + 1;
    begin
-      Marlowe.Locks.Exclusive_Lock (Allocation_Lock);
-
-      Allocated := Allocated + Bytes;
-      declare
-         use Table_Of_Allocations;
-         Pos   : constant Cursor :=
-                   Allocation_Table.Find (To_Key (Message));
-      begin
-         if Has_Element (Pos) then
-            declare
-               Item : constant Allocation_Entry := Element (Pos);
-            begin
-               Item.Quantity := Item.Quantity + 1;
-               Item.Size     := Item.Size + Bytes;
-            end;
-         else
-            Allocation_Table.Insert
-              (Key      => To_Key (Message),
-               New_Item => new Allocation_Entry_Record'(1, Bytes));
-         end if;
-      end;
-      Marlowe.Locks.Unlock (Allocation_Lock);
+      Allocation.Allocate (Size, Message);
    end Allocate;
 
    ----------------
@@ -74,21 +134,8 @@ package body Marlowe.Allocation is
    procedure Deallocate (Size    : Natural;
                          Message : String)
    is
-      Bytes : constant Natural := (Size - 1) / 8 + 1;
    begin
-      Marlowe.Locks.Exclusive_Lock (Allocation_Lock);
-      Allocated := Allocated - Bytes;
-      declare
-         use Table_Of_Allocations;
-         Pos : constant Cursor :=
-                 Allocation_Table.Find (To_Key (Message));
-         Item : constant Allocation_Entry :=
-                  Element (Pos);
-      begin
-         Item.Quantity := Item.Quantity - 1;
-         Item.Size := Item.Size - Bytes;
-      end;
-      Marlowe.Locks.Unlock (Allocation_Lock);
+      Allocation.Deallocate (Size, Message);
    end Deallocate;
 
    ----------------------
@@ -105,20 +152,8 @@ package body Marlowe.Allocation is
    ------------
 
    procedure Report is
-      use Table_Of_Allocations;
-      Pos : Cursor := Allocation_Table.First;
    begin
-      while Has_Element (Pos) loop
-         declare
-            Name : constant String := Key (Pos);
-            Item : constant Allocation_Entry := Element (Pos);
-         begin
-            Ada.Text_IO.Put_Line (Name & ":" &
-                               Natural'Image (Item.Quantity) &
-                                  Natural'Image (Item.Size));
-         end;
-         Next (Pos);
-      end loop;
+      Allocation.Report;
    end Report;
 
    ------------
