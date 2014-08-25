@@ -3,6 +3,7 @@ package Marlowe.Pages.Free_Map is
    type Free_Map_Page_Record is private;
 
    type Free_Map_Page is access all Free_Map_Page_Record;
+   pragma No_Strict_Aliasing (Free_Map_Page);
 
    function To_Free_Map_Page (Item : Page) return Free_Map_Page;
    function To_Page (Item : Free_Map_Page) return Page;
@@ -42,4 +43,3 @@ private
    for Free_Map_Page_Record'Size use Page_Bits;
 
 end Marlowe.Pages.Free_Map;
-

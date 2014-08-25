@@ -12,6 +12,7 @@ package Marlowe.Pages is
    type Page_Record is private;
 
    type Page is access all Page_Record;
+   pragma No_Strict_Aliasing (Page);
 
    function Get_File_Index (From : Page) return File_Index;
    function Get_Page_Index (From : Page) return Page_Index;

@@ -7,6 +7,7 @@ package Marlowe.Pages.Table is
 
    type Table_Page_Record is private;
    type Table_Page is access all Table_Page_Record;
+   pragma No_Strict_Aliasing (Table_Page);
 
    function To_Table_Page (Item : Page) return Table_Page;
    function To_Page (Item : Table_Page) return Page;
@@ -44,6 +45,3 @@ private
    --   for Table_Page_Record'Size use Page_Bits;
 
 end Marlowe.Pages.Table;
-
-
-
