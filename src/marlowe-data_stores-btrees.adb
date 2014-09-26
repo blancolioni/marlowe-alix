@@ -297,9 +297,13 @@ package body Marlowe.Data_Stores.Btrees is
    is
    begin
       return Result : Btree_Data_Store_Cursor (Start'Length) do
-         Result.Mark :=
-           Search (Store.Btree, Reference, Start, Finish,
-                   Start_Interval, Finish_Interval, Scan);
+         declare
+            Mark : constant Btree_Mark :=
+                     Search (Store.Btree, Reference, Start, Finish,
+                             Start_Interval, Finish_Interval, Scan);
+         begin
+            Result.Mark := Mark;
+         end;
       end return;
    end Search;
 
