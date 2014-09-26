@@ -1,6 +1,6 @@
 package Marlowe.Trace is
 
-   Tracing : Boolean := False;
+   Tracing : constant Boolean := False;
 
    procedure Start_Trace (File_Name : String);
    procedure End_Trace;

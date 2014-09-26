@@ -90,10 +90,10 @@ package body Marlowe.Caches is
 
    procedure Trace (Message : String);
    procedure Enter (Message : String);
-   pragma Unreferenced (Enter);
+   --  pragma Unreferenced (Enter);
 
    procedure Leave (Message : String);
-   pragma Unreferenced (Leave);
+   --  pragma Unreferenced (Leave);
 
    -----------
    -- Close --
@@ -172,7 +172,9 @@ package body Marlowe.Caches is
 
    procedure Enter (Message : String) is
    begin
-      Trace ("ENTER: " & Message);
+      if Marlowe.Trace.Tracing then
+         Trace ("ENTER: " & Message);
+      end if;
    end Enter;
 
    --------------------
@@ -181,9 +183,13 @@ package body Marlowe.Caches is
 
    procedure Exclusive_Lock (Item : in Cached_Page_Info) is
    begin
-      --  Enter ("Exclusive_Lock: " & Image (Item.Location));
+      if Marlowe.Trace.Tracing then
+         Enter ("Exclusive_Lock: " & Image (Item.Location));
+      end if;
       Marlowe.Locks.Exclusive_Lock (Item.Page_Lock);
-      --  Leave ("Exclusive_Lock: " & Image (Item.Location));
+      if Marlowe.Trace.Tracing then
+         Leave ("Exclusive_Lock: " & Image (Item.Location));
+      end if;
    end Exclusive_Lock;
 
    ----------------------
@@ -404,7 +410,9 @@ package body Marlowe.Caches is
 
    procedure Leave (Message : String) is
    begin
-      Trace ("LEAVE: " & Message);
+      if Marlowe.Trace.Tracing then
+         Trace ("LEAVE: " & Message);
+      end if;
    end Leave;
 
    -----------------
@@ -475,7 +483,13 @@ package body Marlowe.Caches is
 
    procedure Reference (Info : Cached_Page_Info) is
    begin
+      if Marlowe.Trace.Tracing then
+         Marlowe.Trace.Trace ("reference " & Image (Info.Location));
+      end if;
       Info.References.Reference (Info);
+      if Marlowe.Trace.Tracing then
+         Marlowe.Trace.Trace ("exit reference " & Image (Info.Location));
+      end if;
    end Reference;
 
    -----------------------
@@ -568,13 +582,17 @@ package body Marlowe.Caches is
 
    procedure Shared_Lock (Item : in Cached_Page_Info) is
    begin
-      --  Enter ("Shared_Lock: " & Image (Item.Location) &
-      --           Natural'Image (Marlowe.Locks.Shared_Lock_Count
-      --                            (Item.Page_Lock)));
+      if Marlowe.Trace.Tracing then
+         Enter ("Shared_Lock: " & Image (Item.Location) &
+                  Natural'Image (Marlowe.Locks.Shared_Lock_Count
+                  (Item.Page_Lock)));
+      end if;
       Marlowe.Locks.Shared_Lock (Item.Page_Lock);
-      --  Leave ("Shared_Lock: " & Image (Item.Location) &
-      --           Natural'Image (Marlowe.Locks.Shared_Lock_Count
-      --                            (Item.Page_Lock)));
+      if Marlowe.Trace.Tracing then
+         Leave ("Shared_Lock: " & Image (Item.Location) &
+                  Natural'Image (Marlowe.Locks.Shared_Lock_Count
+                  (Item.Page_Lock)));
+      end if;
    end Shared_Lock;
 
    -------------------
@@ -592,13 +610,17 @@ package body Marlowe.Caches is
 
    procedure Shared_Unlock (Item : in Cached_Page_Info) is
    begin
-      --  Enter ("Shared_Unlock: " & Image (Item.Location) &
-      --           Natural'Image (Marlowe.Locks.Shared_Lock_Count
-      --                            (Item.Page_Lock)));
+      if Marlowe.Trace.Tracing then
+         Enter ("Shared_Unlock: " & Image (Item.Location) &
+                  Natural'Image (Marlowe.Locks.Shared_Lock_Count
+                  (Item.Page_Lock)));
+      end if;
       Marlowe.Locks.Shared_Unlock (Item.Page_Lock);
-      --  Leave ("Shared_Unlock: " & Image (Item.Location) &
-      --           Natural'Image (Marlowe.Locks.Shared_Lock_Count
-      --                            (Item.Page_Lock)));
+      if Marlowe.Trace.Tracing then
+         Leave ("Shared_Unlock: " & Image (Item.Location) &
+                  Natural'Image (Marlowe.Locks.Shared_Lock_Count
+                  (Item.Page_Lock)));
+      end if;
    end Shared_Unlock;
 
    -----------
@@ -607,7 +629,7 @@ package body Marlowe.Caches is
 
    procedure Trace (Message : String) is
    begin
-      if False and then Marlowe.Trace.Tracing then
+      if Marlowe.Trace.Tracing then
          Marlowe.Trace.Trace ("CACHE: " & Message);
       end if;
    end Trace;
@@ -618,9 +640,13 @@ package body Marlowe.Caches is
 
    procedure Unlock (Item : in Cached_Page_Info) is
    begin
-      --  Enter ("Exclusive_Unlock: " & Image (Item.Location));
+      if Marlowe.Trace.Tracing then
+         Enter ("Exclusive_Unlock: " & Image (Item.Location));
+      end if;
       Marlowe.Locks.Unlock (Item.Page_Lock);
-      --  Leave ("Exclusive_Unlock: " & Image (Item.Location));
+      if Marlowe.Trace.Tracing then
+         Leave ("Exclusive_Unlock: " & Image (Item.Location));
+      end if;
    end Unlock;
 
    -----------------
@@ -629,6 +655,10 @@ package body Marlowe.Caches is
 
    procedure Unreference (Info : Cached_Page_Info) is
    begin
+      if Marlowe.Trace.Tracing then
+         Marlowe.Trace.Trace ("unreference " & Image (Info.Location));
+      end if;
+
       Marlowe.Locks.Shared_Lock (Info.From_Cache.Cache_Lock.all);
 
       if Info.Dirty then
