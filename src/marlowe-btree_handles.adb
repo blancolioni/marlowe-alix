@@ -59,7 +59,10 @@ package body Marlowe.Btree_Handles is
    --  Return true if Current is self-consistent; i.e. if its
    --  position obeys its constraints.
 
-   function Empty_Mark return Btree_Mark;
+   function Empty_Mark
+     (Key_Length : System.Storage_Elements.Storage_Count)
+      return Btree_Mark;
+
    --  Local function to return a mark which indicates a search failure
 
    function Debug_Delete return Boolean;
@@ -997,8 +1000,11 @@ package body Marlowe.Btree_Handles is
    -- Empty_Mark --
    ----------------
 
-   function Empty_Mark return Btree_Mark is
-      Result : Btree_Mark (0);
+   function Empty_Mark
+     (Key_Length : System.Storage_Elements.Storage_Count)
+      return Btree_Mark
+   is
+      Result : Btree_Mark (Key_Length);
    begin
       Result.Slot := 0;
       return Result;
@@ -2096,7 +2102,7 @@ package body Marlowe.Btree_Handles is
                   Start_Interval, Finish_Interval);
                if Interval = Closed then
                   if not Consistent (Result) then
-                     return Empty_Mark;
+                     return Empty_Mark (Start'Length);
                   end if;
                else
                   Next (Result);
@@ -2116,7 +2122,7 @@ package body Marlowe.Btree_Handles is
                   end if;
 
                   if not Consistent (Result) then
-                     return Empty_Mark;
+                     return Empty_Mark (Start'Length);
                   end if;
                   return Result;
                end;
@@ -2160,18 +2166,18 @@ package body Marlowe.Btree_Handles is
                               Start_Interval, Finish_Interval);
                         begin
                            if not Consistent (Result) then
-                              return Empty_Mark;
+                              return Empty_Mark (Start'Length);
                            end if;
                            return Result;
                         end;
                      else
                         Shared_Unlock (P);
-                        return Empty_Mark;
+                        return Empty_Mark (Start'Length);
                      end if;
                   end;
                else
                   Shared_Unlock (Page);
-                  return Empty_Mark;
+                  return Empty_Mark (Start'Length);
                end if;
             else
                declare
