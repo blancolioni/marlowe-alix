@@ -74,6 +74,7 @@ package body Marlowe.Caches is
          File        : Marlowe.Files.File_Type;
          Size        : Natural                     := 0;
          Max_Size    : Natural;
+         Hit_Max     : Boolean := False;
          Allocations : Natural := 0;
          Cache_Lock  : File_Cache_Lock;
          LRU_Lock    : Marlowe.Locks.Lock;
@@ -356,7 +357,10 @@ package body Marlowe.Caches is
                Info := new Cached_Page_Info_Record;
                From_Cache.Size := From_Cache.Size + 1;
                if From_Cache.Size = From_Cache.Max_Size then
-                  Ada.Text_IO.Put_Line ("Maximum cache reached");
+                  if not From_Cache.Hit_Max then
+                     Ada.Text_IO.Put_Line ("Maximum cache reached");
+                     From_Cache.Hit_Max := True;
+                  end if;
                elsif From_Cache.Size mod 4096 = 0 then
                   Ada.Text_IO.Put (Natural'Image (From_Cache.Size / 4096));
                   Ada.Text_IO.Flush;
@@ -449,7 +453,10 @@ package body Marlowe.Caches is
          Info := new Cached_Page_Info_Record;
          From_Cache.Size := From_Cache.Size + 1;
          if From_Cache.Size >= From_Cache.Max_Size then
-            Ada.Text_IO.Put_Line ("Maximum cache reached");
+            if not From_Cache.Hit_Max then
+               Ada.Text_IO.Put_Line ("Maximum cache reached");
+               From_Cache.Hit_Max := True;
+            end if;
          elsif From_Cache.Size mod 4096 = 0 then
             Ada.Text_IO.Put (Natural'Image (From_Cache.Size / 4096));
             Ada.Text_IO.Flush;
