@@ -1,6 +1,8 @@
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
+with Marlowe.Page_Types;
+
 package body Marlowe.Pages.Table is
 
    ---------------------

@@ -52,7 +52,37 @@ package Marlowe is
    Null_File_And_Page      : constant File_And_Page;
    Null_File_Page_And_Slot : constant File_Page_And_Slot;
 
-   type Marlowe_Magic_Number is mod 2**64;
+   function To_File_And_Page (File : File_Index;
+                              Page : Page_Index)
+                              return File_And_Page;
+
+   function To_File_Page_And_Slot (File : File_Index;
+                                   Page : Page_Index;
+                                   Slot : Slot_Index)
+                                   return File_Page_And_Slot;
+
+   function To_File_Page_And_Slot (Page : File_And_Page;
+                                   Slot : Slot_Index)
+                                   return File_Page_And_Slot;
+
+   function Get_File (From : File_And_Page) return File_Index;
+   function Get_File (From : File_Page_And_Slot) return File_Index;
+
+   function Get_Page (From : File_And_Page) return Page_Index;
+   function Get_Page (From : File_Page_And_Slot) return Page_Index;
+
+   function Get_File_And_Page
+     (From : File_Page_And_Slot)
+      return File_And_Page;
+
+   function Get_Slot (From : File_Page_And_Slot) return Slot_Index;
+
+   type Marlowe_Magic_Number is mod 2 ** 64;
+
+   type Page_Type is mod 2 ** 16;
+
+   subtype Internal_Page_Type is Page_Type range 0 .. 31;
+   subtype External_Page_Type is Page_Type range 32 .. Page_Type'Last;
 
 private
 
@@ -70,30 +100,5 @@ private
 
    Null_File_Page_And_Slot : constant File_Page_And_Slot := 0;
    Null_File_And_Page      : constant File_And_Page      := 0;
-
-   function Get_File (From : File_And_Page) return File_Index;
-   function Get_File (From : File_Page_And_Slot) return File_Index;
-
-   function Get_Page (From : File_And_Page) return Page_Index;
-   function Get_Page (From : File_Page_And_Slot) return Page_Index;
-
-   function Get_File_And_Page
-     (From : File_Page_And_Slot)
-      return File_And_Page;
-
-   function Get_Slot (From : File_Page_And_Slot) return Slot_Index;
-
-   function To_File_And_Page (File : File_Index;
-                              Page : Page_Index)
-                             return File_And_Page;
-
-   function To_File_Page_And_Slot (File : File_Index;
-                                   Page : Page_Index;
-                                   Slot : Slot_Index)
-                                  return File_Page_And_Slot;
-
-   function To_File_Page_And_Slot (Page : File_And_Page;
-                                   Slot : Slot_Index)
-                                  return File_Page_And_Slot;
 
 end Marlowe;

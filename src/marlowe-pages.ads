@@ -1,6 +1,5 @@
 with System.Storage_Elements;
 
-with Marlowe.Page_Types;
 with Marlowe.Sizes;
 
 package Marlowe.Pages is
@@ -23,14 +22,14 @@ package Marlowe.Pages is
    function Get_File_And_Page (From : Page_Record) return File_And_Page;
 
    function Get_Page_Type (From : Page)
-                          return Marlowe.Page_Types.Page_Type;
+                          return Page_Type;
 
    procedure Release (Item : in out Page);
 
    function Validate (Item : Page_Record) return Boolean;
 
    procedure Initialise (Item     : in Page;
-                         Identity : in Marlowe.Page_Types.Page_Type;
+                         Identity : in Page_Type;
                          Location : in File_And_Page);
 
    function Elements_Per_Page
@@ -85,7 +84,6 @@ private
 
    for Page_Header'Size use Marlowe.Sizes.Page_Header_Bits;
    for Page_Tail'Size   use Marlowe.Sizes.Page_Tail_Bits;
-
 
    type Page_Record is
       record
