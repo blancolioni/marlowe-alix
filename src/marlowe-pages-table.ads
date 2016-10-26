@@ -1,7 +1,5 @@
-with Marlowe.Page_Types;
-
 generic
-   Table_Page_Type : Marlowe.Page_Types.Page_Type;
+   Table_Page_Type : Page_Type;
    type Contents_Type is private;
 package Marlowe.Pages.Table is
 
@@ -18,6 +16,8 @@ package Marlowe.Pages.Table is
 
    procedure Release (Item : in out Table_Page);
 
+   function Last_Slot (Item : Table_Page) return Slot_Index;
+
    function Get_Table_Value (Item   : in Table_Page;
                              Offset : Slot_Index)
                              return Contents_Type;
@@ -25,7 +25,6 @@ package Marlowe.Pages.Table is
    procedure Set_Table_Value (Item   : in Table_Page;
                               Offset : Slot_Index;
                               Value  :  Contents_Type);
-
 
 private
 
@@ -43,5 +42,9 @@ private
       end record;
 
    --   for Table_Page_Record'Size use Page_Bits;
+
+   function Last_Slot (Item : Table_Page) return Slot_Index
+   is (Table_Entry_Index'Last);
+
 
 end Marlowe.Pages.Table;

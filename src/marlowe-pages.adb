@@ -76,10 +76,10 @@ package body Marlowe.Pages is
    -------------------
 
    function Get_Page_Type (From : Page)
-                          return Marlowe.Page_Types.Page_Type
+                          return Page_Type
    is
    begin
-      return Page_Types.Page_Type'Val (From.Header.Identity);
+      return Page_Type'Val (From.Header.Identity);
    end Get_Page_Type;
 
    ----------------
@@ -87,12 +87,12 @@ package body Marlowe.Pages is
    ----------------
 
    procedure Initialise (Item     : in Page;
-                         Identity : in Marlowe.Page_Types.Page_Type;
+                         Identity : in Page_Type;
                          Location : in File_And_Page)
    is
    begin
       Item.Header   := (Header_Magic, 0,
-                        Marlowe.Page_Types.Page_Type'Pos (Identity),
+                        Page_Type'Pos (Identity),
                         Location);
       Item.Tail     := (Unused => 0, Magic => Tail_Magic);
       Item.Contents := (others => 0);
@@ -119,8 +119,8 @@ package body Marlowe.Pages is
 
    function Validate (Item : Page_Record) return Boolean is
    begin
-      return Item.Header.Magic = Header_Magic and
-        Item.Tail.Magic = Tail_Magic;
+      return Item.Header.Magic = Header_Magic
+        and then Item.Tail.Magic = Tail_Magic;
    end Validate;
 
 end Marlowe.Pages;

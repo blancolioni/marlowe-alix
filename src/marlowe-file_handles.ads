@@ -1,6 +1,6 @@
 with Marlowe.Page_Handles;
 
-private package Marlowe.File_Handles is
+package Marlowe.File_Handles is
 
    type File_Handle is private;
 
@@ -36,5 +36,3 @@ private
    type File_Handle is access File_Handle_Record;
 
 end Marlowe.File_Handles;
-
-

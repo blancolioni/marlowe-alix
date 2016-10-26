@@ -73,7 +73,7 @@ package body Marlowe.Page_Handles is
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Message (E));
          Ada.Text_IO.Put_Line
            ("Page type: "
-            & Marlowe.Page_Types.Page_Type'Image
+            & Page_Type'Image
               (Marlowe.Pages.Get_Page_Type
                  (Handle.The_Page)));
 

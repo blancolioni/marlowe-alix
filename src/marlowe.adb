@@ -72,7 +72,7 @@ package body Marlowe is
         Page_Image (2 .. Page_Image'Last) & ']';
    end Image;
 
-    -----------
+   -----------
    -- Image --
    -----------
 
@@ -91,7 +91,7 @@ package body Marlowe is
       ']';
    end Image;
 
-  ----------------------
+   ----------------------
    -- To_File_And_Page --
    ----------------------
 

@@ -1,9 +1,8 @@
-with Marlowe.Page_Types;
 with Marlowe.Page_Handles;
 with Marlowe.Pages.Table;
 
 generic
-   Table_Page_Type : Marlowe.Page_Types.Page_Type;
+   Table_Page_Type : Page_Type;
    type Contents_Type is private;
    Default_Value : Contents_Type;
    with package Table_Pages is new Marlowe.Pages.Table (Table_Page_Type,
@@ -14,8 +13,9 @@ package Marlowe.Table_Page_Handles is
      new Marlowe.Page_Handles.Page_Handle
      with private;
 
-   procedure Set_Page (Handle    : in out Table_Page_Handle;
-                       Reference : in     File_And_Page);
+   overriding procedure Set_Page
+     (Handle    : in out Table_Page_Handle;
+      Reference : in     File_And_Page);
 
    function Get_Table_Page
      (Handle : Table_Page_Handle)
@@ -33,6 +33,14 @@ package Marlowe.Table_Page_Handles is
                               Offset : Slot_Index;
                               Value  :  Contents_Type);
 
+   function Last_Slot (Item : Table_Page_Handle'Class) return Slot_Index;
+
+   procedure Scan_Table
+     (Item    : Table_Page_Handle'Class;
+      Process : not null access
+        procedure (Slot : Slot_Index;
+                   Value : Contents_Type));
+
    overriding
    procedure New_Page (Handle    : in out Table_Page_Handle;
                        Reference : in     File_And_Page);
@@ -44,5 +52,8 @@ private
       record
          The_Table_Page : Table_Pages.Table_Page;
       end record;
+
+   function Last_Slot (Item : Table_Page_Handle'Class) return Slot_Index
+   is (Table_Pages.Last_Slot (Item.The_Table_Page));
 
 end Marlowe.Table_Page_Handles;

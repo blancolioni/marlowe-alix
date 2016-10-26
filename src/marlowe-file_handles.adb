@@ -235,7 +235,7 @@ package body Marlowe.File_Handles is
       loop
          Set_Page (Free_Map, To_File_And_Page (File_Loc, Free_Map_Index));
          Free_Map_Index := Next_Free_Page (Free_Map);
-         exit when Free_Map_Index = 0 or Free_Map_Index > Page_Loc;
+         exit when Free_Map_Index = 0 or else Free_Map_Index > Page_Loc;
       end loop;
 
       Free (Free_Map, Page_Loc);
@@ -331,5 +331,3 @@ package body Marlowe.File_Handles is
    end Read;
 
 end Marlowe.File_Handles;
-
-

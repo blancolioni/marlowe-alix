@@ -54,6 +54,24 @@ package body Marlowe.Table_Page_Handles is
       Set_Dirty (Handle);
    end New_Page;
 
+   ----------------
+   -- Scan_Table --
+   ----------------
+
+   procedure Scan_Table
+     (Item    : Table_Page_Handle'Class;
+      Process : not null access
+        procedure (Slot : Slot_Index;
+                   Value : Contents_Type))
+   is
+   begin
+      for I in 1 .. Table_Pages.Last_Slot (Item.The_Table_Page) loop
+         Process (I,
+                  Table_Pages.Get_Table_Value
+                  (Item.The_Table_Page, I));
+      end loop;
+   end Scan_Table;
+
    --------------
    -- Set_Page --
    --------------
