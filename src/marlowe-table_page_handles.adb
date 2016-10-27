@@ -4,13 +4,13 @@ package body Marlowe.Table_Page_Handles is
    -- Get_Table_Page --
    --------------------
 
-   function Get_Table_Page
-     (Handle : Table_Page_Handle)
-     return Table_Pages.Table_Page
-   is
-   begin
-      return Handle.The_Table_Page;
-   end Get_Table_Page;
+--     function Get_Table_Page
+--       (Handle : Table_Page_Handle)
+--       return Table_Pages.Table_Page
+--     is
+--     begin
+--        return Handle.The_Table_Page;
+--     end Get_Table_Page;
 
    ---------------------
    -- Get_Table_Value --
@@ -40,7 +40,7 @@ package body Marlowe.Table_Page_Handles is
    -- New_Page --
    --------------
 
-   procedure New_Page (Handle    : in out Table_Page_Handle;
+   overriding procedure New_Page (Handle    : in out Table_Page_Handle;
                        Reference : in     File_And_Page)
    is
    begin
@@ -72,11 +72,22 @@ package body Marlowe.Table_Page_Handles is
       end loop;
    end Scan_Table;
 
+   ----------------
+   -- Set_Header --
+   ----------------
+
+   procedure Set_Header (Table  : Table_Page_Handle;
+                         Header : Header_Type)
+   is
+   begin
+      Table_Pages.Set_Header (Table.The_Table_Page, Header);
+   end Set_Header;
+
    --------------
    -- Set_Page --
    --------------
 
-   procedure Set_Page (Handle    : in out Table_Page_Handle;
+   overriding procedure Set_Page (Handle    : in out Table_Page_Handle;
                        Reference : in     File_And_Page)
    is
    begin
