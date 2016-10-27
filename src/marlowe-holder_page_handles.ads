@@ -1,4 +1,4 @@
-private with Marlowe.Pages.Table;
+--  private with Marlowe.Pages.Table;
 private with Marlowe.Table_Page_Handles;
 
 with Marlowe.Page_Handles;
@@ -25,12 +25,18 @@ package Marlowe.Holder_Page_Handles is
 
 private
 
-   package Holder_Pages is
-     new Marlowe.Pages.Table (Holder_Page_Type, Element_Type);
+   type Holder_Page_Contents is mod 256;
+
+--     package Holder_Pages is
+--       new Marlowe.Pages.Table
+--         (Table_Page_Type => Holder_Page_Type,
+--          Header_Type     => Holder_Page_Contents,
+--          Contents_Type   => Element_Type);
 
    package Holder_Handles is
      new Marlowe.Table_Page_Handles
-       (Holder_Page_Type, Element_Type, Default_Value, Holder_Pages);
+       (Holder_Page_Type, Holder_Page_Contents, Element_Type,
+        Default_Value);
 
    type Holder_Page_Handle is new Holder_Handles.Table_Page_Handle
    with null record;

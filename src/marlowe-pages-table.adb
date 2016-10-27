@@ -44,6 +44,17 @@ package body Marlowe.Pages.Table is
       Free (Item);
    end Release;
 
+   ----------------
+   -- Set_Header --
+   ----------------
+
+   procedure Set_Header (Item   : Table_Page;
+                         Header : Header_Type)
+   is
+   begin
+      Item.Table_Header := Header;
+   end Set_Header;
+
    ---------------------
    -- Set_Table_Value --
    ---------------------
@@ -75,8 +86,8 @@ package body Marlowe.Pages.Table is
       use Marlowe.Page_Types;
       function TFM is new Ada.Unchecked_Conversion (Page, Table_Page);
    begin
-      pragma Assert (Get_Page_Type (Item) = Table_Page_Type or
-                     Get_Page_Type (Item) = No_Page_Type);
+      pragma Assert (Get_Page_Type (Item) = Table_Page_Type
+                     or else Get_Page_Type (Item) = No_Page_Type);
       return TFM (Item);
    end To_Table_Page;
 
