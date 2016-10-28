@@ -5,7 +5,6 @@ generic
    Table_Page_Type : Page_Type;
    type Header_Type is private;
    type Contents_Type is private;
-   Default_Value : Contents_Type;
 package Marlowe.Table_Page_Handles is
 
    type Table_Page_Handle is

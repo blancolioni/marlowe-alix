@@ -12,8 +12,7 @@ package Marlowe.Pages.Table is
    function To_Page (Item : Table_Page) return Page;
 
    procedure Initialise (Item          : in Table_Page;
-                         Location      : in File_And_Page;
-                         Default_Value : in Contents_Type);
+                         Location      : in File_And_Page);
 
    procedure Release (Item : in out Table_Page);
 

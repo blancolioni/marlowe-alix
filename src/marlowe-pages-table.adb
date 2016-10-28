@@ -24,12 +24,10 @@ package body Marlowe.Pages.Table is
 
    procedure Initialise
      (Item          : in Table_Page;
-      Location      : in File_And_Page;
-      Default_Value : in Contents_Type)
+      Location      : in File_And_Page)
    is
    begin
       Initialise (To_Page (Item), Table_Page_Type, Location);
-      Item.Contents := (others => Default_Value);
    end Initialise;
 
    -------------
