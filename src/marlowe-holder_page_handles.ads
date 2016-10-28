@@ -35,8 +35,7 @@ private
 
    package Holder_Handles is
      new Marlowe.Table_Page_Handles
-       (Holder_Page_Type, Holder_Page_Contents, Element_Type,
-        Default_Value);
+       (Holder_Page_Type, Holder_Page_Contents, Element_Type);
 
    type Holder_Page_Handle is new Holder_Handles.Table_Page_Handle
    with null record;

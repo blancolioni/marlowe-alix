@@ -50,7 +50,7 @@ package body Marlowe.Table_Page_Handles is
       Handle.The_Table_Page :=
         Table_Pages.To_Table_Page (Get_Page (Handle));
       Table_Pages.Initialise (Handle.The_Table_Page,
-                              Reference, Default_Value);
+                              Reference);
       Set_Dirty (Handle);
    end New_Page;
 
