@@ -40,8 +40,9 @@ package body Marlowe.Table_Page_Handles is
    -- New_Page --
    --------------
 
-   overriding procedure New_Page (Handle    : in out Table_Page_Handle;
-                       Reference : in     File_And_Page)
+   overriding procedure New_Page
+     (Handle    : in out Table_Page_Handle;
+      Reference : in     File_And_Page)
    is
    begin
       Marlowe.Page_Handles.New_Page

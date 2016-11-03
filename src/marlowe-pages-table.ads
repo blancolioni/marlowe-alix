@@ -16,6 +16,8 @@ package Marlowe.Pages.Table is
 
    procedure Release (Item : in out Table_Page);
 
+   Page_Slot_Count : constant Slot_Index;
+
    function Last_Slot (Item : Table_Page) return Slot_Index;
 
    function Get_Header (Item : Table_Page) return Header_Type;
@@ -54,8 +56,10 @@ private
 
    --   for Table_Page_Record'Size use Page_Bits;
 
+   Page_Slot_Count : constant Slot_Index := Table_Entry_Index'Last;
+
    function Last_Slot (Item : Table_Page) return Slot_Index
-   is (Table_Entry_Index'Last);
+   is (Page_Slot_Count);
 
    function Get_Header (Item : Table_Page) return Header_Type
    is (Item.Table_Header);
