@@ -6,7 +6,6 @@ with Marlowe.Page_Handles;
 generic
    Holder_Page_Type : Page_Type;
    type Element_Type is private;
-   Default_Value : Element_Type;
 package Marlowe.Holder_Page_Handles is
 
    type Holder_Page_Handle is
@@ -35,8 +34,7 @@ private
 
    package Holder_Handles is
      new Marlowe.Table_Page_Handles
-       (Holder_Page_Type, Holder_Page_Contents, Element_Type,
-        Default_Value);
+       (Holder_Page_Type, Holder_Page_Contents, Element_Type);
 
    type Holder_Page_Handle is new Holder_Handles.Table_Page_Handle
    with null record;
