@@ -6,7 +6,6 @@ with Marlowe.Page_Handles;
 generic
    Holder_Page_Type : Page_Type;
    type Element_Type is private;
-   Default_Value : Element_Type;
 package Marlowe.Holder_Page_Handles is
 
    type Holder_Page_Handle is
