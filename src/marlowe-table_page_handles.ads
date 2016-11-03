@@ -5,7 +5,6 @@ generic
    Table_Page_Type : Page_Type;
    type Header_Type is private;
    type Contents_Type is private;
-   Default_Value : Contents_Type;
 package Marlowe.Table_Page_Handles is
 
    type Table_Page_Handle is
@@ -36,6 +35,8 @@ package Marlowe.Table_Page_Handles is
                               Offset : Slot_Index;
                               Value  :  Contents_Type);
 
+   Page_Slot_Count : constant Slot_Index;
+
    function Last_Slot (Item : Table_Page_Handle'Class) return Slot_Index;
 
    procedure Scan_Table
@@ -60,6 +61,8 @@ private
       record
          The_Table_Page : Table_Pages.Table_Page;
       end record;
+
+   Page_Slot_Count : constant Slot_Index := Table_Pages.Page_Slot_Count;
 
    function Last_Slot (Item : Table_Page_Handle'Class) return Slot_Index
    is (Table_Pages.Last_Slot (Item.The_Table_Page));

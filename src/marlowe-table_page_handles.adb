@@ -40,8 +40,9 @@ package body Marlowe.Table_Page_Handles is
    -- New_Page --
    --------------
 
-   overriding procedure New_Page (Handle    : in out Table_Page_Handle;
-                       Reference : in     File_And_Page)
+   overriding procedure New_Page
+     (Handle    : in out Table_Page_Handle;
+      Reference : in     File_And_Page)
    is
    begin
       Marlowe.Page_Handles.New_Page
@@ -50,7 +51,7 @@ package body Marlowe.Table_Page_Handles is
       Handle.The_Table_Page :=
         Table_Pages.To_Table_Page (Get_Page (Handle));
       Table_Pages.Initialise (Handle.The_Table_Page,
-                              Reference, Default_Value);
+                              Reference);
       Set_Dirty (Handle);
    end New_Page;
 
