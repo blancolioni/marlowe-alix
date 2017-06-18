@@ -1,6 +1,7 @@
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
+with Marlowe.Page_Types;
 with Marlowe.Pages.Btree;
 
 package body Marlowe.Pages.Btree_Header is

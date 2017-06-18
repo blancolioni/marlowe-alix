@@ -1,9 +1,12 @@
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
+with Marlowe.Page_Types;
+
 package body Marlowe.Pages.Btree is
 
    pragma Style_Checks (Off);
+   pragma No_Strict_Aliasing (Btree_Page);
 
    type File_And_Page_Storage is
      new System.Storage_Elements.Storage_Array (1 .. 8);
@@ -317,12 +320,12 @@ package body Marlowe.Pages.Btree is
    begin
       if Leaf then
          Item.Header.Identity :=
-           Marlowe.Page_Types.Page_Type'Pos
-           (Marlowe.Page_Types.Btree_Leaf_Page_Type);
+           Page_Type'Pos
+             (Marlowe.Page_Types.Btree_Leaf_Page_Type);
       else
          Item.Header.Identity :=
-           Marlowe.Page_Types.Page_Type'Pos
-           (Marlowe.Page_Types.Btree_Node_Page_Type);
+           Page_Type'Pos
+             (Marlowe.Page_Types.Btree_Node_Page_Type);
       end if;
 
       Item.Contents :=
