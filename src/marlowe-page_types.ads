@@ -13,10 +13,13 @@ package Marlowe.Page_Types is
    Data_Page_Type                : constant Page_Type := 10;
    Data_Overflow_Page_Type       : constant Page_Type := 11;
    Field_Extension_Page_Type     : constant Page_Type := 12;
+   Storage_Element_Page_Type     : constant Page_Type := 13;
 
    subtype Internal_Page_Type is Page_Type range 1 .. 15;
 
    First_Available_Page_Type : constant Page_Type :=
                                  Internal_Page_Type'Last + 1;
+
+   type No_Header is null record;
 
 end Marlowe.Page_Types;
