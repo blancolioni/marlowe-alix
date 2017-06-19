@@ -120,4 +120,18 @@ package Marlowe.Key_Storage is
         return Component_Type;
    end Unsigned_Key_Components;
 
+   generic
+      type Integral is range <>;
+   package Integral_Storage is
+
+      procedure From_Storage
+        (Value   :    out Integral;
+         Storage : in     Storage_Array);
+
+      procedure To_Storage
+        (Value   : in     Integral;
+         Storage : in out Storage_Array);
+
+   end Integral_Storage;
+
 end Marlowe.Key_Storage;

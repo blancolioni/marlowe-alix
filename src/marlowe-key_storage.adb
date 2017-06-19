@@ -1,4 +1,5 @@
 with Ada.Unchecked_Conversion;
+with System;
 
 package body Marlowe.Key_Storage is
 
@@ -28,6 +29,57 @@ package body Marlowe.Key_Storage is
         (Value   :    out Storage_Type;
          Storage : in     Storage_Array);
    end Unsigned_Storage;
+
+   package body Integral_Storage is
+
+      type Unsigned_Integral is mod System.Max_Binary_Modulus;
+
+      package Unsigned_Integral_Storage is
+        new Unsigned_Storage (Unsigned_Integral);
+
+      ------------------
+      -- From_Storage --
+      ------------------
+
+      procedure From_Storage
+        (Value   :    out Integral;
+         Storage : in     Storage_Array)
+      is
+         X : Unsigned_Integral;
+      begin
+         Unsigned_Integral_Storage.From_Storage (X, Storage);
+
+         if X = 0 then
+            Value := Integral'First;
+         elsif X >= Unsigned_Integral (Integral'Last) then
+            Value := Integral (X - Unsigned_Integral (Integral'Last));
+         else
+            Value := Integral (X) - Integral'Last;
+         end if;
+      end From_Storage;
+
+      ----------------
+      -- To_Storage --
+      ----------------
+
+      procedure To_Storage
+        (Value   : in     Integral;
+         Storage : in out Storage_Array)
+      is
+         X      : Unsigned_Integral;
+      begin
+         if Value = Integral'First then
+            X := 0;
+         elsif Value < 0 then
+            X := Unsigned_Integral (Value + Integral'Last);
+         else
+            X := Unsigned_Integral (Value) + Unsigned_Integral (Integral'Last);
+         end if;
+
+         Unsigned_Integral_Storage.To_Storage (X, Storage);
+      end To_Storage;
+
+   end Integral_Storage;
 
    ----------------------
    -- Unsigned_Storage --
