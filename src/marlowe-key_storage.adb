@@ -183,6 +183,50 @@ package body Marlowe.Key_Storage is
    package Long_Float_Integer_Components is
      new Unsigned_Key_Components (Long_Float_Integer);
 
+   ---------------------------------
+   -- Bounded_String_From_Storage --
+   ---------------------------------
+
+   procedure Bounded_String_From_Storage
+     (Value   :    out String;
+      Length  :    out Natural;
+      Storage : in     Storage_Array)
+   is
+      use type System.Storage_Elements.Storage_Element;
+   begin
+      Length := 0;
+      for I in Storage'Range loop
+         exit when Storage (I) = 0;
+         Length := Length + 1;
+         Value (Length) := Character'Val (Storage (I));
+      end loop;
+   end Bounded_String_From_Storage;
+
+   -------------------------------
+   -- Bounded_String_To_Storage --
+   -------------------------------
+
+   procedure Bounded_String_To_Storage
+     (Value   : in     String;
+      Storage : in out Storage_Array)
+   is
+      use System.Storage_Elements;
+      Index : Positive := Value'First;
+   begin
+      for I in Storage'Range loop
+         if Index in Value'Range then
+            Storage (I) := Character'Pos (Value (Index));
+            Index := Index + 1;
+         else
+            Storage (I) := 0;
+         end if;
+      end loop;
+      Storage (Storage'Last - 1) :=
+        Storage_Element (Value'Length / (2 ** System.Storage_Unit));
+      Storage (Storage'Last) :=
+        Storage_Element (Value'Length mod (2 ** System.Storage_Unit));
+   end Bounded_String_To_Storage;
+
    -------------
    -- Compare --
    -------------
@@ -226,6 +270,38 @@ package body Marlowe.Key_Storage is
    begin
       return Left = Right;
    end Equal;
+
+   -------------------------------
+   -- Fixed_String_From_Storage --
+   -------------------------------
+
+   procedure Fixed_String_From_Storage
+     (Value   :    out String;
+      Storage : in     Storage_Array)
+   is
+      Index : Natural := Value'First - 1;
+   begin
+      for Unit of Storage loop
+         Index := Index + 1;
+         Value (Index) := Character'Val (Unit);
+      end loop;
+   end Fixed_String_From_Storage;
+
+   -----------------------------
+   -- Fixed_String_To_Storage --
+   -----------------------------
+
+   procedure Fixed_String_To_Storage
+     (Value   : in     String;
+      Storage : in out Storage_Array)
+   is
+      Index : Natural := Value'First - 1;
+   begin
+      for Unit of Storage loop
+         Index := Index + 1;
+         Unit := Character'Pos (Value (Index));
+      end loop;
+   end Fixed_String_To_Storage;
 
    ------------------
    -- From_Storage --
@@ -288,25 +364,6 @@ package body Marlowe.Key_Storage is
          X := X - 2 ** (Long_Float'Size - 1);
       end if;
       Value := To_Long_Float (X);
-   end From_Storage;
-
-   ------------------
-   -- From_Storage --
-   ------------------
-
-   procedure From_Storage
-     (Value   :    out String;
-      Length  :    out Natural;
-      Storage : in     Storage_Array)
-   is
-      use type System.Storage_Elements.Storage_Element;
-   begin
-      Length := 0;
-      for I in Storage'Range loop
-         exit when Storage (I) = 0;
-         Length := Length + 1;
-         Value (Length) := Character'Val (Storage (I));
-      end loop;
    end From_Storage;
 
    ------------------
@@ -469,31 +526,6 @@ package body Marlowe.Key_Storage is
          X := X + 2 ** (Long_Float'Size - 1);
       end if;
       Long_Float_Storage.To_Storage (X, Storage);
-   end To_Storage;
-
-   ----------------
-   -- To_Storage --
-   ----------------
-
-   procedure To_Storage
-     (Value   : in     String;
-      Storage : in out Storage_Array)
-   is
-      use System.Storage_Elements;
-      Index : Positive := Value'First;
-   begin
-      for I in Storage'Range loop
-         if Index in Value'Range then
-            Storage (I) := Character'Pos (Value (Index));
-            Index := Index + 1;
-         else
-            Storage (I) := 0;
-         end if;
-      end loop;
-      Storage (Storage'Last - 1) :=
-        Storage_Element (Value'Length / (2**System.Storage_Unit));
-      Storage (Storage'Last) :=
-        Storage_Element (Value'Length mod (2**System.Storage_Unit));
    end To_Storage;
 
    ----------------
