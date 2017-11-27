@@ -51,7 +51,11 @@ package Marlowe.Key_Storage is
      (Value   : in     Long_Float;
       Storage : in out Storage_Array);
 
-   procedure To_Storage
+   procedure Bounded_String_To_Storage
+     (Value   : in     String;
+      Storage : in out Storage_Array);
+
+   procedure Fixed_String_To_Storage
      (Value   : in     String;
       Storage : in out Storage_Array);
 
@@ -87,9 +91,13 @@ package Marlowe.Key_Storage is
      (Value   :    out File_And_Page;
       Storage : in     Storage_Array);
 
-   procedure From_Storage
+   procedure Bounded_String_From_Storage
      (Value   :    out String;
       Length  :    out Natural;
+      Storage : in     Storage_Array);
+
+   procedure Fixed_String_From_Storage
+     (Value   :    out String;
       Storage : in     Storage_Array);
 
    function To_Database_Index
