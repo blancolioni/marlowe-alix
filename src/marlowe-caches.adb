@@ -668,11 +668,11 @@ package body Marlowe.Caches is
 
       Marlowe.Locks.Shared_Lock (Info.From_Cache.Cache_Lock.all);
 
-      if Info.Dirty then
-         Marlowe.Files.Write (Info.From_Cache.File,
-                              Info.Cached_Page);
-         Info.Dirty := False;
-      end if;
+--        if Info.Dirty then
+--           Marlowe.Files.Write (Info.From_Cache.File,
+--                                Info.Cached_Page);
+--           Info.Dirty := False;
+--        end if;
 
       Info.References.Unreference (Info);
 

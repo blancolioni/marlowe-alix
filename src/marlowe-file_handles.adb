@@ -148,12 +148,13 @@ package body Marlowe.File_Handles is
    procedure Close (File : in out File_Handle) is
       procedure Free is new Ada.Unchecked_Deallocation (File_Handle_Record,
                                                         File_Handle);
-      Blocks, Pages, Hits, Misses : Natural;
+      --  Blocks, Pages, Hits, Misses : Natural;
       Cache : Marlowe.Caches.File_Cache := File.Cache;
       Disk_File : Marlowe.Files.File_Type := File.File;
    begin
-      Marlowe.Caches.Get_Cache_Statistics (File.Cache, Blocks, Pages,
-                                           Hits, Misses);
+      Marlowe.Caches.Flush (Cache);
+--        Marlowe.Caches.Get_Cache_Statistics (File.Cache, Blocks, Pages,
+--                                             Hits, Misses);
 --        Marlowe.Trace.Put_Line ("Cache block allocations:" &
 --                              Natural'Image (Blocks));
 --        Marlowe.Trace.Put_Line ("Cache pages:" & Natural'Image (Pages));
