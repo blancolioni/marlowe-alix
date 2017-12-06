@@ -9,7 +9,7 @@ package body Marlowe.Page_Handles is
    -- Adjust --
    ------------
 
-   procedure Adjust     (Handle : in out Page_Handle) is
+   overriding procedure Adjust     (Handle : in out Page_Handle) is
       use type Marlowe.Pages.Page;
    begin
       if Handle.The_Page /= null then
@@ -50,7 +50,7 @@ package body Marlowe.Page_Handles is
    -- Finalize --
    --------------
 
-   procedure Finalize   (Handle : in out Page_Handle) is
+   overriding procedure Finalize   (Handle : in out Page_Handle) is
       use type Marlowe.Pages.Page;
    begin
       if Handle.The_Page /= null then
@@ -101,7 +101,7 @@ package body Marlowe.Page_Handles is
    -- Initialize --
    ----------------
 
-   procedure Initialize (Handle : in out Page_Handle) is
+   overriding procedure Initialize (Handle : in out Page_Handle) is
       pragma Unreferenced (Handle);
    begin
       null;
