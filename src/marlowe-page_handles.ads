@@ -7,9 +7,9 @@ package Marlowe.Page_Handles is
 
    type Page_Handle is new Ada.Finalization.Controlled with private;
 
-   procedure Initialize (Handle : in out Page_Handle);
-   procedure Finalize   (Handle : in out Page_Handle);
-   procedure Adjust     (Handle : in out Page_Handle);
+   overriding procedure Initialize (Handle : in out Page_Handle);
+   overriding procedure Finalize   (Handle : in out Page_Handle);
+   overriding procedure Adjust     (Handle : in out Page_Handle);
 
    procedure Set_Cache (Handle : in out Page_Handle;
                         Cache  : in     Marlowe.Caches.File_Cache);
