@@ -257,14 +257,23 @@ package body Marlowe.File_Handles is
    -- Get_Cache_Statistics --
    --------------------------
 
-   procedure Get_Cache_Statistics (File   : in     File_Handle;
-                                   Blocks :    out Natural;
-                                   Pages  :    out Natural;
-                                   Hits   :    out Natural;
-                                   Misses :    out Natural)
+   procedure Get_Cache_Statistics (File      : in     File_Handle;
+                                   Blocks    :    out Natural;
+                                   Pages     :    out Natural;
+                                   Hits      :    out Natural;
+                                   Misses    :    out Natural;
+                                   Reads     :    out Natural;
+                                   Writes    :    out Natural;
+                                   Last_Page :    out Page_Index)
    is
    begin
-      Caches.Get_Cache_Statistics (File.Cache, Blocks, Pages, Hits, Misses);
+      Caches.Get_Cache_Statistics
+        (File.Cache, Blocks, Pages, Hits, Misses);
+      Marlowe.Files.Get_Statistics
+        (File   => File.File,
+         Last   => Last_Page,
+         Reads  => Reads,
+         Writes => Writes);
    end Get_Cache_Statistics;
 
    -------------------

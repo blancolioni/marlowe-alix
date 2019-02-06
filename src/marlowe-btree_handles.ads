@@ -172,11 +172,14 @@ package Marlowe.Btree_Handles is
                         Reference : Btree_Reference;
                         To_Output : Boolean          := False);
 
-   procedure Get_Cache_Statistics (Handle : in     Btree_Handle;
-                                   Blocks :    out Natural;
-                                   Pages  :    out Natural;
-                                   Hits   :    out Natural;
-                                   Misses :    out Natural);
+   procedure Get_Cache_Statistics
+     (Handle    : in     Btree_Handle;
+      Blocks    :    out Natural;
+      Pages     :    out Natural;
+      Hits      :    out Natural;
+      Misses    :    out Natural;
+      Reads     :    out Natural;
+      Writes    :    out Natural);
 
 private
 

@@ -106,6 +106,10 @@ package Marlowe.Data_Stores.Btrees is
       Reference : File_And_Page;
       Data      : System.Storage_Elements.Storage_Array);
 
+   overriding function Get_Data_Store_Information
+     (Store : Btree_Data_Store)
+      return Marlowe.Database.Database_Information;
+
 private
 
    type Btree_Data_Store is

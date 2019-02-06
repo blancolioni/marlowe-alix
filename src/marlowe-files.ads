@@ -39,6 +39,12 @@ package Marlowe.Files is
                      Index : File_Index)
                     return Boolean;
 
+   procedure Get_Statistics
+     (File   : File_Type;
+      Last   : out Page_Index;
+      Reads  : out Natural;
+      Writes : out Natural);
+
 private
 
    type File_Type_Record;

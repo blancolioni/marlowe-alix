@@ -24,11 +24,14 @@ package Marlowe.File_Handles is
    procedure Deallocate (File     : in File_Handle;
                          Location : in File_And_Page);
 
-   procedure Get_Cache_Statistics (File   : in     File_Handle;
-                                   Blocks :    out Natural;
-                                   Pages  :    out Natural;
-                                   Hits   :    out Natural;
-                                   Misses :    out Natural);
+   procedure Get_Cache_Statistics (File      : in     File_Handle;
+                                   Blocks    :    out Natural;
+                                   Pages     :    out Natural;
+                                   Hits      :    out Natural;
+                                   Misses    :    out Natural;
+                                   Reads     :    out Natural;
+                                   Writes    :    out Natural;
+                                   Last_Page : out Page_Index);
 
 private
 

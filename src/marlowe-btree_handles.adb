@@ -268,11 +268,8 @@ package body Marlowe.Btree_Handles is
    ------------
 
    overriding procedure Adjust (Mark : in out Btree_Mark) is
-      use Marlowe.Btree_Page_Handles;
    begin
       if Mark.Slot /= 0 then
---           Ada.Text_IO.Put_Line ("Adjusting mark: " &
---                                 Image (Mark.Page.Get_Location));
          Btree_Page_Handles.Shared_Lock (Mark.Page);
       end if;
    end Adjust;
@@ -897,7 +894,6 @@ package body Marlowe.Btree_Handles is
    begin
 
       declare
-         use Marlowe.Tables;
          Addr : constant File_Page_And_Slot :=
                   Get_Record_Address (Handle, Table, Db_Index);
          Header : Marlowe.Tables.Record_Header;
@@ -933,7 +929,6 @@ package body Marlowe.Btree_Handles is
    begin
 
       declare
-         use Marlowe.Tables;
          Addr : constant File_Page_And_Slot :=
                   Get_Record_Address (Handle, Table, Db_Index);
          Header : Marlowe.Tables.Record_Header;
@@ -1042,15 +1037,20 @@ package body Marlowe.Btree_Handles is
    -- Get_Cache_Statistics --
    --------------------------
 
-   procedure Get_Cache_Statistics (Handle : in      Btree_Handle;
-                                   Blocks :     out Natural;
-                                   Pages  :     out Natural;
-                                   Hits   :     out Natural;
-                                   Misses :     out Natural)
+   procedure Get_Cache_Statistics
+     (Handle    : in     Btree_Handle;
+      Blocks    :    out Natural;
+      Pages     :    out Natural;
+      Hits      :    out Natural;
+      Misses    :    out Natural;
+      Reads     :    out Natural;
+      Writes    :    out Natural)
    is
+      Last_Page : Page_Index;
    begin
-      File_Handles.Get_Cache_Statistics (Handle.File,
-                                         Blocks, Pages, Hits, Misses);
+      File_Handles.Get_Cache_Statistics
+        (Handle.File,
+         Blocks, Pages, Hits, Misses, Reads, Writes, Last_Page);
    end Get_Cache_Statistics;
 
    -------------------------
