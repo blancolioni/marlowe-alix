@@ -2,6 +2,8 @@ package body Marlowe.Data_Stores.Btrees is
 
    use Marlowe.Btree_Handles;
 
+   Last_Record_Index : Database_Index := 0;
+
    type Btree_Data_Store_Cursor
      (Key_Length : System.Storage_Elements.Storage_Count)
    is
@@ -120,6 +122,28 @@ package body Marlowe.Data_Stores.Btrees is
       return Deleted_Record (Store.Btree, Table, Db_Index);
    end Deleted_Record;
 
+   --------------------------
+   -- Get_Cache_Statistics --
+   --------------------------
+
+   overriding function Get_Data_Store_Information
+     (Store : Btree_Data_Store)
+      return Marlowe.Database.Database_Information
+   is
+      Rec : Marlowe.Database.Database_Information;
+   begin
+      Marlowe.Btree_Handles.Get_Cache_Statistics
+        (Handle    => Store.Btree,
+         Blocks    => Rec.Blocks,
+         Pages     => Rec.Pages,
+         Hits      => Rec.Hits,
+         Misses    => Rec.Misses,
+         Reads     => Rec.Reads,
+         Writes    => Rec.Writes);
+      Rec.Record_Count := Natural (Last_Record_Index);
+      return Rec;
+   end Get_Data_Store_Information;
+
    -------------
    -- Get_Key --
    -------------
@@ -195,7 +219,11 @@ package body Marlowe.Data_Stores.Btrees is
       return Database_Index
    is
    begin
-      return Insert_Record (Store.Btree, Table);
+      return Record_Index : constant Database_Index :=
+        Insert_Record (Store.Btree, Table)
+      do
+         Last_Record_Index := Record_Index;
+      end return;
    end Insert_Record;
 
    ----------------

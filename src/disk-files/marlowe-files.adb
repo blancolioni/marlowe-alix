@@ -19,7 +19,8 @@ package body Marlowe.Files is
       function New_Page return Page_Index;
 
       function Max_Page_Index return Page_Index;
-
+      function Read_Count return Natural;
+      function Write_Count return Natural;
       procedure Clear (Page : Page_Index);
       procedure Open (Name : String);
       procedure Create (Name : String);
@@ -28,8 +29,9 @@ package body Marlowe.Files is
       function Is_Open return Boolean;
 
    private
-      File : File_Of_Pages.File_Type;
-      Open_Flag : Boolean := False;
+      File          : File_Of_Pages.File_Type;
+      Open_Flag     : Boolean := False;
+      Reads, Writes : Natural := 0;
    end Marlowe_File;
 
    type Array_Of_Marlowe_Files is
@@ -58,7 +60,6 @@ package body Marlowe.Files is
    -----------
 
    procedure Close (File : in out File_Type) is
-      use File_Of_Pages;
       procedure Free is
          new Ada.Unchecked_Deallocation (File_Type_Record, File_Type);
    begin
@@ -78,7 +79,6 @@ package body Marlowe.Files is
                      Index : in     File_Index;
                      Name  : in     String)
    is
-      use File_Of_Pages;
    begin
 
       pragma Assert (Index > 0);
@@ -96,6 +96,27 @@ package body Marlowe.Files is
       File.Files (Index).Create (Name);
 
    end Create;
+
+   --------------------
+   -- Get_Statistics --
+   --------------------
+
+   procedure Get_Statistics
+     (File   : File_Type;
+      Last   : out Page_Index;
+      Reads  : out Natural;
+      Writes : out Natural)
+   is
+   begin
+      Reads := 0;
+      Writes := 0;
+      Last   := 0;
+      for F of File.Files loop
+         Reads := Reads + F.Read_Count;
+         Writes := Writes + F.Write_Count;
+         Last := Page_Index'Max (F.Max_Page_Index, Last);
+      end loop;
+   end Get_Statistics;
 
    -------------
    -- Is_Open --
@@ -235,7 +256,17 @@ package body Marlowe.Files is
          pragma Assert (From <=
                           Page_Index (File_Of_Pages.Size (File)));
          File_Of_Pages.Read (File, Item, File_Of_Pages.Positive_Count (From));
+         Reads := Reads + 1;
       end Read;
+
+      ----------------
+      -- Read_Count --
+      ----------------
+
+      function Read_Count return Natural is
+      begin
+         return Reads;
+      end Read_Count;
 
       -----------
       -- Write --
@@ -261,7 +292,19 @@ package body Marlowe.Files is
                              (New_Last_Page = Last_File_Page + 1
                  and then Get_Page (Location) = New_Last_Page));
          end;
+
+         Writes := Writes + 1;
+
       end Write;
+
+      -----------------
+      -- Write_Count --
+      -----------------
+
+      function Write_Count return Natural is
+      begin
+         return Writes;
+      end Write_Count;
 
    end Marlowe_File;
 
@@ -285,7 +328,6 @@ package body Marlowe.Files is
                       Index : File_Index)
                      return Page_Index
    is
-      use File_Of_Pages;
    begin
       pragma Assert (Index > 0);
       pragma Assert (Index < Max_Files);
@@ -301,7 +343,6 @@ package body Marlowe.Files is
                    Index : in     File_Index;
                    Name : in     String)
    is
-      use File_Of_Pages;
    begin
 
       pragma Assert (Index > 0);

@@ -3,6 +3,8 @@ with Ada.Strings.Unbounded;
 
 with System.Storage_Elements;
 
+with Marlowe.Database;
+
 package Marlowe.Data_Stores is
 
    type Root_Data_Store_Cursor
@@ -158,6 +160,11 @@ package Marlowe.Data_Stores is
       Scan            : Scan_Type)
       return Data_Store_Cursor
       is abstract;
+
+   function Get_Data_Store_Information
+     (Store     : Data_Store_Interface)
+      return Marlowe.Database.Database_Information
+   is abstract;
 
    function Search
      (Store       : Data_Store_Interface'Class;
