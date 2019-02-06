@@ -4,8 +4,6 @@ with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Marlowe.Allocation;
---  with Marlowe.Debug;
---  with Marlowe.Debug_Classes;
 with Marlowe.Locks;
 
 with Marlowe.Mutex;
@@ -136,10 +134,6 @@ package body Marlowe.Caches is
 
          Free (Cache);
       end;
-      Ada.Text_IO.Put_Line ("Cache hits:   " & Cache_Hits'Img);
-      Ada.Text_IO.Put_Line ("Cache misses: " & Cache_Misses'Img);
-
-      --  Leave ("Close");
    end Close;
 
    ------------------
@@ -335,14 +329,6 @@ package body Marlowe.Caches is
          else
             if From_Cache.Size >= From_Cache.Max_Size then
                Info := From_Cache.LRU_List.First_Element;
-               --  if Show_References then
---                    Ada.Text_IO.Put_Line ("Removing from cache: " &
---                                            Image (Info.Location) &
---                                            " (reference count =" &
---                                            Natural'Image
---                                            (Info.References.Count));
-               --  end if;
-
                Map_Mutex.X_Lock;
                declare
                   It : Map_Of_Cached_Pages.Cursor :=
@@ -361,9 +347,6 @@ package body Marlowe.Caches is
                      Ada.Text_IO.Put_Line ("Maximum cache reached");
                      From_Cache.Hit_Max := True;
                   end if;
-               elsif From_Cache.Size mod 4096 = 0 then
-                  Ada.Text_IO.Put (Natural'Image (From_Cache.Size / 4096));
-                  Ada.Text_IO.Flush;
                end if;
             end if;
 
@@ -457,9 +440,6 @@ package body Marlowe.Caches is
                Ada.Text_IO.Put_Line ("Maximum cache reached");
                From_Cache.Hit_Max := True;
             end if;
-         elsif From_Cache.Size mod 4096 = 0 then
-            Ada.Text_IO.Put (Natural'Image (From_Cache.Size / 4096));
-            Ada.Text_IO.Flush;
          end if;
 
          Map_Mutex.X_Lock;
@@ -521,10 +501,6 @@ package body Marlowe.Caches is
       procedure Reference (Info : Cached_Page_Info) is
       begin
          Reference_Count := Reference_Count + 1;
---           Ada.Text_IO.Put_Line ("ref: " & Image (Info.Location)
---                                 & "; count ="
---                                 & Natural'Image (Reference_Count));
-
          if Reference_Count = 1 then
             Marlowe.Locks.Exclusive_Lock (Info.From_Cache.LRU_Lock);
             if List_Of_Cached_Pages.Has_Element (Position) then
@@ -541,10 +517,6 @@ package body Marlowe.Caches is
 
       procedure Unreference (Info : Cached_Page_Info) is
       begin
---           Ada.Text_IO.Put_Line ("unref: " & Image (Info.Location)
---                                 & "; count ="
---                                 & Natural'Image (Reference_Count));
-
          Reference_Count := Reference_Count - 1;
 
          if Reference_Count = 0 then
