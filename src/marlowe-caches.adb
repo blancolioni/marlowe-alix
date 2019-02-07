@@ -455,6 +455,8 @@ package body Marlowe.Caches is
       Info.Dirty       := True;
       Info.References.Reference (Info);
 
+      From_Cache.Allocations := From_Cache.Allocations + 1;
+
       if Marlowe.Trace.Tracing then
          Marlowe.Trace.Trace ("New_Page: Removing exclusive lock: " &
                                Image (Location));
