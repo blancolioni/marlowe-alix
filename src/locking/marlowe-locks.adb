@@ -96,9 +96,10 @@ package body Marlowe.Locks is
 
    protected body Lock is
 
-      entry Exclusive_Lock when
-        not Is_Exclusive_Locked and not Is_Update_Locked and
-        Num_Shared_Locks = 0
+      entry Exclusive_Lock
+        when not Is_Exclusive_Locked
+        and then not Is_Update_Locked
+        and then Num_Shared_Locks = 0
       is
       begin
          Is_Exclusive_Locked := True;
@@ -109,8 +110,8 @@ package body Marlowe.Locks is
          return Is_Exclusive_Locked;
       end Exclusive_Locked;
 
-      entry Shared_Lock when not Is_Exclusive_Locked
-        --  and not Is_Update_Locked
+      entry Shared_Lock
+        when not Is_Exclusive_Locked
       is
       begin
          Num_Shared_Locks := Num_Shared_Locks + 1;
@@ -162,6 +163,4 @@ package body Marlowe.Locks is
 
    end Lock;
 
-
 end Marlowe.Locks;
-
