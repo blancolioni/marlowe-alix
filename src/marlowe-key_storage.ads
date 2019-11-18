@@ -27,6 +27,11 @@ package Marlowe.Key_Storage is
       Length : System.Storage_Elements.Storage_Count)
       return System.Storage_Elements.Storage_Array;
 
+   function Fixed_String_To_Storage
+     (Value  : String;
+      Length : System.Storage_Elements.Storage_Count)
+      return System.Storage_Elements.Storage_Array;
+
    procedure To_Storage
      (Value   : in     Database_Index;
       Storage : in out Storage_Array);

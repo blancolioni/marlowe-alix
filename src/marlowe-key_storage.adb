@@ -303,6 +303,23 @@ package body Marlowe.Key_Storage is
       end loop;
    end Fixed_String_To_Storage;
 
+   -----------------------------
+   -- Fixed_String_To_Storage --
+   -----------------------------
+
+   function Fixed_String_To_Storage
+     (Value  : String;
+      Length : System.Storage_Elements.Storage_Count)
+      return System.Storage_Elements.Storage_Array
+   is
+   begin
+      return Storage : System.Storage_Elements.Storage_Array
+        (1 .. Length)
+      do
+         Fixed_String_To_Storage (Value, Storage);
+      end return;
+   end Fixed_String_To_Storage;
+
    ------------------
    -- From_Storage --
    ------------------
