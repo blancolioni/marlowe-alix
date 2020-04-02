@@ -43,7 +43,6 @@ package body Marlowe.Btree_Page_Handles is
                         To_Output : Boolean := False)
    is
       pragma Unreferenced (To_Output);
-      use Btree_Page_Handles;
 
       procedure Trace (Text : String);
 
@@ -152,8 +151,8 @@ package body Marlowe.Btree_Page_Handles is
    --------------------
 
    function Get_Btree_Page
-     (Handle : Btree_Page_Handle)
-     return Marlowe.Pages.Btree.Btree_Page
+     (Handle : Btree_Page_Handle'Class)
+      return Marlowe.Pages.Btree.Btree_Page
    is
    begin
       return Handle.The_Btree_Page;
@@ -253,7 +252,7 @@ package body Marlowe.Btree_Page_Handles is
                          Child      : File_And_Page)
    is
    begin
-      pragma Assert (not Is_Leaf (Item) or Child = 0);
+      pragma Assert (not Is_Leaf (Item) or else Child = 0);
 
       Set_Dirty (Item);
       Set_Number_Of_Keys (Item, Number_Of_Keys (Item) + 1);
@@ -374,8 +373,9 @@ package body Marlowe.Btree_Page_Handles is
    -- New_Page --
    --------------
 
-   procedure New_Page (Handle     : in out Btree_Page_Handle;
-                       Reference  : in     File_And_Page)
+   overriding procedure New_Page
+     (Handle     : in out Btree_Page_Handle;
+      Reference  : in     File_And_Page)
    is
    begin
       Marlowe.Page_Handles.New_Page
@@ -449,8 +449,9 @@ package body Marlowe.Btree_Page_Handles is
    -- Set_Page --
    --------------
 
-   procedure Set_Page (Handle    : in out Btree_Page_Handle;
-                       Reference : in     File_And_Page)
+   overriding procedure Set_Page
+     (Handle    : in out Btree_Page_Handle;
+      Reference : in     File_And_Page)
    is
    begin
       Marlowe.Page_Handles.Set_Page

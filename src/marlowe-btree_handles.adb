@@ -20,6 +20,8 @@ with Marlowe.Btree_Header_Page_Handles;
 with Marlowe.Btree.Data_Definition_Handles;
 with Marlowe.Key_Storage;
 
+with Marlowe.Pages.Btree;
+
 with Marlowe.File_Handles;
 
 with Marlowe.Debug_Classes;
@@ -1735,10 +1737,13 @@ package body Marlowe.Btree_Handles is
                   Shared_Lock (Parent);
                   Shared_Unlock (Current.Page);
 
-                  Index :=
-                    Find_Key (Parent,
-                              Current_Key,
-                              Current.Scan = Forward);
+                  if Current.Scan = Forward then
+                     Index :=
+                       Marlowe.Pages.Btree.Find_Key_Forward
+                         (Parent.Get_Btree_Page, Current_Key);
+                  else
+                     Index := Parent.Find_Key (Current_Key, False);
+                  end if;
 
                   if Current.Scan = Forward then
                      if Index <= Number_Of_Keys (Parent) then
@@ -2079,7 +2084,10 @@ package body Marlowe.Btree_Handles is
       is
          use Marlowe.Key_Storage;
          Index  : constant Slot_Index :=
-           Find_Key (Page, Key, Scan = Forward);
+                    (if Scan = Forward
+                     then Marlowe.Pages.Btree.Find_Key_Forward
+                       (Page.Get_Btree_Page, Key)
+                     else Find_Key (Page, Key, Scan = Forward));
          Page_Key : System.Storage_Elements.Storage_Array (Start'Range);
          Result : Btree_Mark (System.Storage_Elements.Storage_Count
                               (Get_Key_Length (Page)));

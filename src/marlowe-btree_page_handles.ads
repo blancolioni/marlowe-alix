@@ -9,15 +9,18 @@ package Marlowe.Btree_Page_Handles is
      new Marlowe.Page_Handles.Page_Handle
      with private;
 
-   procedure Set_Page (Handle    : in out Btree_Page_Handle;
-                       Reference : in     File_And_Page);
+   overriding procedure Set_Page
+     (Handle    : in out Btree_Page_Handle;
+      Reference : in     File_And_Page);
 
-   procedure New_Page (Handle    : in out Btree_Page_Handle;
-                       Reference : in     File_And_Page);
+   overriding procedure New_Page
+     (Handle    : in out Btree_Page_Handle;
+      Reference : in     File_And_Page);
 
    function Get_Btree_Page
-     (Handle : Btree_Page_Handle)
-     return Marlowe.Pages.Btree.Btree_Page;
+     (Handle : Btree_Page_Handle'Class)
+      return Marlowe.Pages.Btree.Btree_Page
+     with Inline_Always;
 
    function Get_Key_Length (Item : in Btree_Page_Handle) return Positive;
 
@@ -68,7 +71,6 @@ package Marlowe.Btree_Page_Handles is
 
    procedure Set_Parent (Item   : Btree_Page_Handle;
                          Parent : Btree_Page_Handle);
-
 
    procedure Set_Key (Item  : Btree_Page_Handle;
                       Index : Slot_Index;

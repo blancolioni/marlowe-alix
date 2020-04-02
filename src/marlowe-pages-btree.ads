@@ -46,7 +46,8 @@ package Marlowe.Pages.Btree is
    function Find_Key_Forward
      (Item       : Btree_Page;
       Key        : System.Storage_Elements.Storage_Array)
-      return Slot_Index;
+      return Slot_Index
+     with Inline_Always;
 
    function Get_Parent (Item : in Btree_Page) return File_And_Page;
 
